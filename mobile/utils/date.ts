@@ -1,11 +1,6 @@
 /**
- * Date Formatting Utilities
- */
-
-/**
  * Format a Firestore timestamp or Date object to a human-readable string
- * @param timestamp - Date object or Firestore timestamp
- * @returns Formatted date string
+ * Pattern: dd/mm/yy, hr:min:ss am/pm
  */
 export function formatTimestamp(
   timestamp: Date | { seconds: number; nanoseconds: number } | null | undefined
@@ -15,47 +10,28 @@ export function formatTimestamp(
   }
 
   try {
-    let date: Date;
+    // Normalize input to Date object
+    const date = timestamp instanceof Date
+      ? timestamp
+      : new Date((timestamp as { seconds: number }).seconds * 1000);
 
-    if (timestamp instanceof Date) {
-      date = timestamp;
-    } else if (typeof timestamp === 'object' && 'seconds' in timestamp) {
-      // Firestore Timestamp
-      date = new Date(timestamp.seconds * 1000);
-    } else {
-      return 'Unknown date';
-    }
-
-    // Check if date is valid
+    // Check validity
     if (isNaN(date.getTime())) {
       return 'Unknown date';
     }
 
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    // Relative time for recent reports
-    if (diffMins < 1) {
-      return 'Just now';
-    } else if (diffMins < 60) {
-      return `${diffMins} minute${diffMins === 1 ? '' : 's'} ago`;
-    } else if (diffHours < 24) {
-      return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
-    } else if (diffDays < 7) {
-      return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
-    }
-
-    // Full date for older reports
-    return date.toLocaleDateString(undefined, {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
+    // Format options: dd/mm/yy, hh:mm:ss am/pm
+    // Using en-GB forces dd/mm ordering
+    return new Intl.DateTimeFormat('en-GB', {
+      day: '2-digit',
+      month: '2-digit',
+      year: '2-digit',
+      hour: 'numeric',
       minute: '2-digit',
-    });
+      second: '2-digit',
+      hour12: true,
+    }).format(date);
+
   } catch (error) {
     console.error('Error formatting timestamp:', error);
     return 'Unknown date';
