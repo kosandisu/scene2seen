@@ -3,7 +3,7 @@
  * Interactive popup displayed when a map marker is clicked
  */
 
-import React, { useState, useCallback } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -14,13 +14,10 @@ import {
 } from 'react-native';
 import { Callout } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
-import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '../../firebase';
-import type { IncidentReport, PriorityLevel } from '../../types/incident';
+import type { IncidentReport } from '../../types/incident';
 import { formatTimestamp } from '../../utils/date';
 import { IncidentImage } from './IncidentImage';
 import { DirectionsButton } from './DirectionsButton';
-import { PrioritySelector } from './PrioritySelector';
 
 interface IncidentCalloutProps {
   incident: IncidentReport;
@@ -28,34 +25,34 @@ interface IncidentCalloutProps {
 
 export function IncidentCallout({ incident }: IncidentCalloutProps) {
   const { width: screenWidth } = useWindowDimensions();
-  const [isUpdatingPriority, setIsUpdatingPriority] = useState(false);
-  const [currentPriority, setCurrentPriority] = useState<PriorityLevel>(
-    incident.priority ?? null
-  );
 
   // Calculate responsive width (max 320px, min 280px, or 85% of screen)
   const calloutWidth = Math.min(Math.max(screenWidth * 0.85, 280), 320);
 
-  const handlePriorityChange = useCallback(async (newPriority: PriorityLevel) => {
-    setIsUpdatingPriority(true);
-    
-    try {
-      const reportRef = doc(db, 'reports', incident.id);
-      await updateDoc(reportRef, {
-        priority: newPriority,
-        priority_updated_at: new Date(),
-      });
-      
-      setCurrentPriority(newPriority);
-    } catch (error) {
-      console.error('Error updating priority:', error);
-      throw error; // Re-throw to let PrioritySelector handle the error
-    } finally {
-      setIsUpdatingPriority(false);
-    }
-  }, [incident.id]);
-
   const formattedTimestamp = formatTimestamp(incident.created_at);
+  const criticalLevel = incident.critical_level || 'unidentified';
+  
+  // Generate incident ID (you can later implement proper logic based on created_at ordering)
+  const incidentId = `INC-${incident.id.substring(0, 3).toUpperCase()}`;
+  
+  // Format coordinates in one line
+  const coordinates = `${incident.reporter_lat.toFixed(4)}, ${incident.reporter_lng.toFixed(4)}`;
+
+  // Get critical level style
+  const getCriticalLevelStyle = () => {
+    switch (criticalLevel) {
+      case 'high':
+        return { backgroundColor: '#EF4444', text: 'Critical' };
+      case 'medium':
+        return { backgroundColor: '#F97316', text: 'Medium' };
+      case 'low':
+        return { backgroundColor: '#22C55E', text: 'Low' };
+      default:
+        return { backgroundColor: '#9CA3AF', text: 'Unidentified' };
+    }
+  };
+
+  const criticalStyle = getCriticalLevelStyle();
 
   return (
     <Callout tooltip style={[styles.callout, { width: calloutWidth }]}>
@@ -69,44 +66,105 @@ export function IncidentCallout({ incident }: IncidentCalloutProps) {
           showsVerticalScrollIndicator={false}
           nestedScrollEnabled
         >
-          {/* Image Section */}
-          <IncidentImage imageUrl={incident.image_url} />
-
-          {/* Header Section */}
+          {/* Header Section with ID and Critical Level */}
           <View style={styles.header}>
-            <Text 
-              style={styles.title}
-              accessibilityRole="header"
-              numberOfLines={2}
-            >
-              Incident Report
-            </Text>
-            
-            {/* Priority Badge */}
-            {currentPriority && (
-              <View 
-                style={[
-                  styles.priorityBadge,
-                  currentPriority === 'high' && styles.priorityHigh,
-                  currentPriority === 'medium' && styles.priorityMedium,
-                  currentPriority === 'low' && styles.priorityLow,
-                ]}
-                accessibilityLabel={`Priority: ${currentPriority}`}
+            <View style={styles.headerLeft}>
+              <Text 
+                style={styles.title}
+                accessibilityRole="header"
               >
-                <Text style={styles.priorityBadgeText}>
-                  {currentPriority.toUpperCase()}
-                </Text>
+                Incident Details
+              </Text>
+              <Text style={styles.incidentId}>{incidentId}</Text>
+            </View>
+            <View 
+              style={[styles.criticalBadge, { backgroundColor: criticalStyle.backgroundColor }]}
+              accessibilityLabel={`Critical level: ${criticalStyle.text}`}
+            >
+              <Text style={styles.criticalBadgeText}>{criticalStyle.text}</Text>
+            </View>
+          </View>
+
+          {/* Incident Details Grid (2x2) */}
+          <View style={styles.detailsGrid}>
+            {/* Row 1 */}
+            <View style={styles.gridRow}>
+              {/* Type */}
+              <View style={styles.detailItem}>
+                <View style={styles.detailIcon}>
+                  <Ionicons name="alert-circle-outline" size={16} color="#6B7280" />
+                </View>
+                <View style={styles.detailContent}>
+                  <Text style={styles.detailLabel}>Type</Text>
+                  <Text 
+                    style={styles.detailValue}
+                    numberOfLines={1}
+                  >
+                    null
+                  </Text>
+                </View>
               </View>
-            )}
+
+              {/* Reported */}
+              <View style={styles.detailItem}>
+                <View style={styles.detailIcon}>
+                  <Ionicons name="time-outline" size={16} color="#6B7280" />
+                </View>
+                <View style={styles.detailContent}>
+                  <Text style={styles.detailLabel}>Reported</Text>
+                  <Text 
+                    style={styles.detailValue}
+                    numberOfLines={1}
+                    accessibilityLabel={`Reported ${formattedTimestamp}`}
+                  >
+                    {formattedTimestamp}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Row 2 */}
+            <View style={styles.gridRow}>
+              {/* Reported By */}
+              <View style={styles.detailItem}>
+                <View style={styles.detailIcon}>
+                  <Ionicons name="person-outline" size={16} color="#6B7280" />
+                </View>
+                <View style={styles.detailContent}>
+                  <Text style={styles.detailLabel}>Reported By</Text>
+                  <Text 
+                    style={styles.detailValue}
+                    numberOfLines={1}
+                    accessibilityLabel={`Reported by: ${incident.reporter_name || 'Anonymous'}`}
+                  >
+                    {incident.reporter_name || 'Anonymous'}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Location */}
+              <View style={styles.detailItem}>
+                <View style={styles.detailIcon}>
+                  <Ionicons name="location-outline" size={16} color="#6B7280" />
+                </View>
+                <View style={styles.detailContent}>
+                  <Text style={styles.detailLabel}>Location</Text>
+                  <Text 
+                    style={styles.detailValue}
+                    numberOfLines={1}
+                    accessibilityLabel={`Location: ${coordinates}`}
+                  >
+                    {coordinates}
+                  </Text>
+                </View>
+              </View>
+            </View>
           </View>
 
           {/* Description */}
           {incident.text && (
             <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Ionicons name="document-text-outline" size={16} color="#6B7280" />
-                <Text style={styles.sectionLabel}>Description</Text>
-              </View>
+              <Text style={styles.sectionTitle}>Description</Text>
               <Text 
                 style={styles.description}
                 accessibilityLabel={`Description: ${incident.text}`}
@@ -116,91 +174,41 @@ export function IncidentCallout({ incident }: IncidentCalloutProps) {
             </View>
           )}
 
-          {/* Metadata Grid */}
-          <View style={styles.metadataGrid}>
-            {/* Timestamp */}
-            <View style={styles.metadataItem}>
-              <View style={styles.metadataIcon}>
-                <Ionicons name="time-outline" size={14} color="#6B7280" />
+          {/* Attached Media */}
+          {incident.image_url && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Ionicons name="image-outline" size={16} color="#6B7280" />
+                <Text style={styles.sectionLabel}>Attached Media</Text>
               </View>
-              <View style={styles.metadataContent}>
-                <Text style={styles.metadataLabel}>Reported</Text>
+              <IncidentImage imageUrl={incident.image_url} />
+            </View>
+          )}
+
+          {/* Source URL */}
+          {incident.source_url && (
+            <View style={styles.sourceUrlContainer}>
+              <View style={styles.detailIcon}>
+                <Ionicons name="link-outline" size={16} color="#6B7280" />
+              </View>
+              <View style={styles.detailContent}>
+                <Text style={styles.detailLabel}>Source URL</Text>
                 <Text 
-                  style={styles.metadataValue}
-                  accessibilityLabel={`Reported ${formattedTimestamp}`}
+                  style={[styles.detailValue, styles.urlText]}
+                  numberOfLines={1}
+                  accessibilityLabel={`Source URL: ${incident.source_url}`}
                 >
-                  {formattedTimestamp}
+                  {incident.source_url}
                 </Text>
               </View>
             </View>
-
-            {/* Reporter */}
-            {incident.reporter_name && (
-              <View style={styles.metadataItem}>
-                <View style={styles.metadataIcon}>
-                  <Ionicons name="person-outline" size={14} color="#6B7280" />
-                </View>
-                <View style={styles.metadataContent}>
-                  <Text style={styles.metadataLabel}>Reporter</Text>
-                  <Text 
-                    style={styles.metadataValue}
-                    numberOfLines={1}
-                    accessibilityLabel={`Reporter: ${incident.reporter_name}`}
-                  >
-                    {incident.reporter_name}
-                  </Text>
-                </View>
-              </View>
-            )}
-
-            {/* Location */}
-            {incident.location_name && (
-              <View style={[styles.metadataItem, styles.fullWidth]}>
-                <View style={styles.metadataIcon}>
-                  <Ionicons name="location-outline" size={14} color="#6B7280" />
-                </View>
-                <View style={styles.metadataContent}>
-                  <Text style={styles.metadataLabel}>Location</Text>
-                  <Text 
-                    style={styles.metadataValue}
-                    numberOfLines={2}
-                    accessibilityLabel={`Location: ${incident.location_name}`}
-                  >
-                    {incident.location_name}
-                  </Text>
-                </View>
-              </View>
-            )}
-
-            {/* Coordinates (always show) */}
-            <View style={[styles.metadataItem, styles.fullWidth]}>
-              <View style={styles.metadataIcon}>
-                <Ionicons name="compass-outline" size={14} color="#6B7280" />
-              </View>
-              <View style={styles.metadataContent}>
-                <Text style={styles.metadataLabel}>Coordinates</Text>
-                <Text 
-                  style={styles.metadataValue}
-                  accessibilityLabel={`Coordinates: ${incident.reporter_lat.toFixed(6)}, ${incident.reporter_lng.toFixed(6)}`}
-                >
-                  {incident.reporter_lat.toFixed(6)}, {incident.reporter_lng.toFixed(6)}
-                </Text>
-              </View>
-            </View>
-          </View>
+          )}
 
           {/* Directions Button */}
           <DirectionsButton
             destinationLat={incident.reporter_lat}
             destinationLng={incident.reporter_lng}
             locationName={incident.location_name}
-          />
-
-          {/* Priority Selector */}
-          <PrioritySelector
-            currentPriority={currentPriority}
-            onPriorityChange={handlePriorityChange}
-            isUpdating={isUpdatingPriority}
           />
         </ScrollView>
 
@@ -232,42 +240,52 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
+    alignItems: 'flex-start',
+    marginBottom: 16,
   },
-  title: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1F2937',
+  headerLeft: {
     flex: 1,
   },
-  priorityBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
+  title: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 4,
+  },
+  incidentId: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#9CA3AF',
+  },
+  criticalBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
     marginLeft: 8,
   },
-  priorityHigh: {
-    backgroundColor: '#FEE2E2',
-  },
-  priorityMedium: {
-    backgroundColor: '#FEF3C7',
-  },
-  priorityLow: {
-    backgroundColor: '#D1FAE5',
-  },
-  priorityBadgeText: {
-    fontSize: 10,
+  criticalBadgeText: {
+    fontSize: 11,
     fontWeight: '700',
+    color: '#FFFFFF',
+    textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   section: {
-    marginBottom: 12,
+    marginBottom: 16,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 8,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 8,
   },
   sectionLabel: {
     fontSize: 12,
@@ -282,42 +300,50 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: '#374151',
   },
-  metadataGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: 4,
-    gap: 8,
-  },
-  metadataItem: {
+  sourceUrlContainer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    width: '48%',
-    backgroundColor: '#F9FAFB',
-    padding: 8,
-    borderRadius: 6,
+    paddingTop: 12,
+    marginBottom: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
   },
-  fullWidth: {
-    width: '100%',
+  urlText: {
+    color: '#3B82F6',
   },
-  metadataIcon: {
+  detailsGrid: {
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  gridRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  detailItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    flex: 1,
+    marginHorizontal: 4,
+  },
+  detailIcon: {
     marginRight: 8,
     marginTop: 2,
   },
-  metadataContent: {
+  detailContent: {
     flex: 1,
   },
-  metadataLabel: {
-    fontSize: 10,
+  detailLabel: {
+    fontSize: 11,
     fontWeight: '600',
     color: '#9CA3AF',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 2,
+    marginBottom: 4,
   },
-  metadataValue: {
-    fontSize: 13,
-    color: '#374151',
+  detailValue: {
+    fontSize: 14,
+    color: '#1F2937',
     fontWeight: '500',
+    lineHeight: 18,
   },
   arrow: {
     position: 'absolute',

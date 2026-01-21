@@ -22,7 +22,7 @@ export function formatTimestamp(
 
     // Format options: dd/mm/yy, hh:mm:ss am/pm
     // Using en-GB forces dd/mm ordering
-    return new Intl.DateTimeFormat('en-GB', {
+    const formatted = new Intl.DateTimeFormat('en-GB', {
       day: '2-digit',
       month: '2-digit',
       year: '2-digit',
@@ -31,6 +31,9 @@ export function formatTimestamp(
       second: '2-digit',
       hour12: true,
     }).format(date);
+
+    // Format: "19/01/26, 7:15:37 pm"
+    return formatted.replace(' at ', ', ');
 
   } catch (error) {
     console.error('Error formatting timestamp:', error);

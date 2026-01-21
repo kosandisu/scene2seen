@@ -4,6 +4,8 @@
 
 export type PriorityLevel = 'high' | 'medium' | 'low' | null;
 
+export type CriticalLevel = 'high' | 'medium' | 'low' | 'unidentified';
+
 export interface IncidentReport {
   id: string;
   text: string | null;
@@ -16,6 +18,7 @@ export interface IncidentReport {
   reporter_name?: string | null;
   location_name?: string | null;
   priority?: PriorityLevel;
+  critical_level?: CriticalLevel;
 }
 
 export interface UserLocation {

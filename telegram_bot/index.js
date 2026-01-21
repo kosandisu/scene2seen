@@ -8,7 +8,7 @@ import { getFirestore, collection, addDoc } from "firebase/firestore";
 const BOT_TOKEN = process.env.BOT_TOKEN;
 
 if (!BOT_TOKEN) {
-  console.error("❌ BOT_TOKEN missing in .env");
+  console.error("BOT_TOKEN missing in .env");
   process.exit(1);
 }
 
@@ -60,7 +60,7 @@ bot.on("message", async (msg) => {
 
   /* ---------- LOCATION (FINALIZE REPORT) ---------- */
   if (msg.location) {
-    console.log("📍 Location received from", userId);
+    console.log("Location received from", userId);
 
     try {
       await addDoc(reportsRef, {
@@ -72,9 +72,9 @@ bot.on("message", async (msg) => {
         created_at: new Date(),
       });
 
-      console.log("✅ Report saved to Firestore");
+      console.log("Report saved to Firestore");
     } catch (err) {
-      console.error("❌ Firestore error:", err);
+      console.error("Firestore error:", err);
     }
 
     pendingReports.delete(userId);
@@ -93,7 +93,7 @@ bot.on("message", async (msg) => {
     createdAt: Date.now(),
   });
 
-  console.log("📝 Text / URL received from", userId);
+  console.log("Text / URL received from", userId);
 }
 
 });
@@ -106,7 +106,7 @@ setInterval(() => {
   for (const [userId, report] of pendingReports) {
     if (now - report.createdAt > 5 * 60 * 1000) {
       pendingReports.delete(userId);
-      console.log("🧹 Cleared stale report for", userId);
+      console.log("Cleared stale report for", userId);
     }
   }
 }, 60 * 1000);
