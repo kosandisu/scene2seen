@@ -2,6 +2,8 @@ import "dotenv/config";
 import TelegramBot from "node-telegram-bot-api";
 import { initializeApp } from "firebase/app";
 import { getFirestore, collection, addDoc } from "firebase/firestore";
+import fetch from "node-fetch";
+import cheerio from "cheerio";
 
 /* -------------------- ENV -------------------- */
 
@@ -47,6 +49,38 @@ function extractUrl(text) {
   const match = text.match(/https?:\/\/\S+/);
   return match ? match[0] : null;
 }
+async function fetchOgMetadata(url) {
+  try {
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0", // important or FB blocks you
+      },
+      timeout: 8000,
+    });
+
+    if (!res.ok) throw new Error("Failed to fetch page");
+
+    const html = await res.text();
+    const $ = cheerio.load(html);
+
+    const getMeta = (prop) =>
+      $(`meta[property="${prop}"]`).attr("content") ||
+      $(`meta[name="${prop}"]`).attr("content") ||
+      null;
+
+    const og = {
+      title: getMeta("og:title") || $("title").text() || null,
+      description: getMeta("og:description") || null,
+      image: getMeta("og:image") || null,
+      site_name: getMeta("og:site_name") || null,
+    };
+
+    return og;
+  } catch (err) {
+    console.error("OG fetch failed:", err.message);
+    return null;
+  }
+}
 
 /* -------------------- MESSAGE HANDLER -------------------- */
 
@@ -68,7 +102,7 @@ bot.on("message", async (msg) => {
 
       const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${msg.location.latitude}&lon=${msg.location.longitude}`;
 
-      
+
       const response = await fetch(url, {
         headers: {
           'User-Agent': 'DisasterResponseBot/1.0'
@@ -111,14 +145,20 @@ bot.on("message", async (msg) => {
       await addDoc(reportsRef, {
         text: existing.text ?? null,
         source_url: existing.source_url ?? null,
+
+        og_title: existing.og_meta?.title ?? null,
+        og_description: existing.og_meta?.description ?? null,
+        og_image: existing.og_meta?.image ?? null,
+        og_site: existing.og_meta?.site_name ?? null,
+
         reporter_lat: msg.location.latitude,
         reporter_lng: msg.location.longitude,
-
-        location_name: addressString, 
+        location_name: addressString,
 
         source_platform: "telegram",
         created_at: new Date(),
       });
+
 
       console.log("Report saved to Firestore with address:", addressString);
     } catch (err) {
@@ -134,12 +174,20 @@ bot.on("message", async (msg) => {
     const url = extractUrl(msg.text);
     const isOnlyUrl = url && msg.text.trim() === url;
 
+    let ogMeta = existing.og_meta ?? null;
+
+    if (url && !existing.og_meta) {
+      ogMeta = await fetchOgMetadata(url);
+    }
+
     pendingReports.set(userId, {
       ...existing,
       text: isOnlyUrl ? null : msg.text,
       source_url: url ?? existing.source_url,
+      og_meta: ogMeta,
       createdAt: Date.now(),
     });
+
 
     console.log("Text / URL received from", userId);
   }
