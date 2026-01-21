@@ -62,17 +62,65 @@ bot.on("message", async (msg) => {
   if (msg.location) {
     console.log("Location received from", userId);
 
+    // --- NEW CODE START: Get Address Name ---
+    let addressString = null;
+    try {
+
+      const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${msg.location.latitude}&lon=${msg.location.longitude}`;
+
+      
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'DisasterResponseBot/1.0'
+        }
+      });
+
+      const data = await response.json();
+
+      if (data && data.address) {
+        // Landmark/Building Name
+        const landmark = data.address.amenity || data.address.building || data.address.leisure || data.address.shop || data.address.tourism || '';
+
+        // Street / Intersection
+        const road = data.address.road || '';
+
+        //Neighborhood (Dong)
+        const dong = data.address.neighbourhood || '';
+        const gu = data.address.suburb || data.address.district || '';
+
+        if (landmark) {
+          // If building name exists, use 
+          addressString = `${landmark} (${dong || gu})`;
+        }
+        else if (road) {
+          // No landmark, street
+          addressString = `${road}, ${gu}`;
+        }
+        else {
+          // Fallback to just the area
+          addressString = [dong, gu, data.address.city].filter(Boolean).join(', ');
+        }
+
+        if (!addressString) addressString = data.display_name;
+      }
+    } catch (geoErr) {
+      console.error("Geocoding failed, saving without address:", geoErr);
+    }
+
     try {
       await addDoc(reportsRef, {
         text: existing.text ?? null,
         source_url: existing.source_url ?? null,
         reporter_lat: msg.location.latitude,
         reporter_lng: msg.location.longitude,
+
+        location_name: addressString, 
+
         source_platform: "telegram",
         created_at: new Date(),
       });
 
-      console.log("Report saved to Firestore");
+      console.log("Report saved to Firestore with address:", addressString);
     } catch (err) {
       console.error("Firestore error:", err);
     }
@@ -83,18 +131,18 @@ bot.on("message", async (msg) => {
 
   /* ---------- TEXT ---------- */
   if (msg.text) {
-  const url = extractUrl(msg.text);
-  const isOnlyUrl = url && msg.text.trim() === url;
+    const url = extractUrl(msg.text);
+    const isOnlyUrl = url && msg.text.trim() === url;
 
-  pendingReports.set(userId, {
-    ...existing,
-    text: isOnlyUrl ? null : msg.text,
-    source_url: url ?? existing.source_url,
-    createdAt: Date.now(),
-  });
+    pendingReports.set(userId, {
+      ...existing,
+      text: isOnlyUrl ? null : msg.text,
+      source_url: url ?? existing.source_url,
+      createdAt: Date.now(),
+    });
 
-  console.log("Text / URL received from", userId);
-}
+    console.log("Text / URL received from", userId);
+  }
 
 });
 

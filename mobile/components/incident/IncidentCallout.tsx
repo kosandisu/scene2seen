@@ -11,6 +11,7 @@ import {
   ScrollView,
   useWindowDimensions,
   Platform,
+  Pressable,
 } from 'react-native';
 import { Callout } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,19 +22,29 @@ import { DirectionsButton } from './DirectionsButton';
 
 interface IncidentCalloutProps {
   incident: IncidentReport;
+  onClose?: () => void;
 }
 
-export function IncidentCallout({ incident }: IncidentCalloutProps) {
+export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
   const { width: screenWidth } = useWindowDimensions();
 
-  // Calculate responsive width (max 320px, min 280px, or 85% of screen)
-  const calloutWidth = Math.min(Math.max(screenWidth * 0.85, 280), 320);
+  // Calculate responsive width (max 360px, min 300px, or 90% of screen)
+  const calloutWidth = Math.min(Math.max(screenWidth * 0.9, 300), 360);
 
   const formattedTimestamp = formatTimestamp(incident.created_at);
   const criticalLevel = incident.critical_level || 'unidentified';
   
-  // Generate incident ID (you can later implement proper logic based on created_at ordering)
-  const incidentId = `INC-${incident.id.substring(0, 3).toUpperCase()}`;
+  // Generate incident ID based on created_at timestamp for sequential ordering
+  const getIncidentNumber = () => {
+    if (incident.created_at instanceof Date) {
+      return incident.created_at.getTime() % 1000;
+    } else if (typeof incident.created_at === 'object' && 'seconds' in incident.created_at) {
+      return incident.created_at.seconds % 1000;
+    }
+    return Math.floor(Math.random() * 1000);
+  };
+  
+  const incidentId = `INC-${String(getIncidentNumber()).padStart(3, '0')}`;
   
   // Format coordinates in one line
   const coordinates = `${incident.reporter_lat.toFixed(4)}, ${incident.reporter_lng.toFixed(4)}`;
@@ -53,6 +64,12 @@ export function IncidentCallout({ incident }: IncidentCalloutProps) {
   };
 
   const criticalStyle = getCriticalLevelStyle();
+
+  const handleClose = () => {
+    if (onClose) {
+      onClose();
+    }
+  };
 
   return (
     <Callout tooltip style={[styles.callout, { width: calloutWidth }]}>
@@ -77,17 +94,24 @@ export function IncidentCallout({ incident }: IncidentCalloutProps) {
               </Text>
               <Text style={styles.incidentId}>{incidentId}</Text>
             </View>
-            <View 
-              style={[styles.criticalBadge, { backgroundColor: criticalStyle.backgroundColor }]}
-              accessibilityLabel={`Critical level: ${criticalStyle.text}`}
-            >
-              <Text style={styles.criticalBadgeText}>{criticalStyle.text}</Text>
+            <View style={styles.badgeContainer}>
+              <View 
+                style={[styles.criticalBadge, { backgroundColor: criticalStyle.backgroundColor }]}
+                accessibilityLabel={`Critical level: ${criticalStyle.text}`}
+              >
+                <Text style={styles.criticalBadgeText}>{criticalStyle.text}</Text>
+              </View>
+              <Pressable onPress={handleClose} hitSlop={8}>
+                <Text style={styles.closeButton}>✕</Text>
+              </Pressable>
             </View>
           </View>
 
-          {/* Incident Details Grid (2x2) */}
+          {/* Incident Details Grid (3x2 with Source URL) */}
+          {/* Incident Details Grid */}
           <View style={styles.detailsGrid}>
-            {/* Row 1 */}
+            
+            {/* Row 1: Type & Reported By (Side by Side) */}
             <View style={styles.gridRow}>
               {/* Type */}
               <View style={styles.detailItem}>
@@ -96,35 +120,13 @@ export function IncidentCallout({ incident }: IncidentCalloutProps) {
                 </View>
                 <View style={styles.detailContent}>
                   <Text style={styles.detailLabel}>Type</Text>
-                  <Text 
-                    style={styles.detailValue}
-                    numberOfLines={1}
-                  >
+                  <Text style={styles.detailValue}>
+                    {/*later incident.type */}
                     null
                   </Text>
                 </View>
               </View>
 
-              {/* Reported */}
-              <View style={styles.detailItem}>
-                <View style={styles.detailIcon}>
-                  <Ionicons name="time-outline" size={16} color="#6B7280" />
-                </View>
-                <View style={styles.detailContent}>
-                  <Text style={styles.detailLabel}>Reported</Text>
-                  <Text 
-                    style={styles.detailValue}
-                    numberOfLines={1}
-                    accessibilityLabel={`Reported ${formattedTimestamp}`}
-                  >
-                    {formattedTimestamp}
-                  </Text>
-                </View>
-              </View>
-            </View>
-
-            {/* Row 2 */}
-            <View style={styles.gridRow}>
               {/* Reported By */}
               <View style={styles.detailItem}>
                 <View style={styles.detailIcon}>
@@ -141,68 +143,90 @@ export function IncidentCallout({ incident }: IncidentCalloutProps) {
                   </Text>
                 </View>
               </View>
+            </View>
 
-              {/* Location */}
-              <View style={styles.detailItem}>
+            {/* Row 2: Reported Time (Full Width) */}
+            <View style={styles.gridRow}>
+              <View style={[styles.detailItem, styles.fullWidth]}>
+                <View style={styles.detailIcon}>
+                  <Ionicons name="time-outline" size={16} color="#6B7280" />
+                </View>
+                <View style={styles.detailContent}>
+                  <Text style={styles.detailLabel}>Reported</Text>
+                  <Text 
+                    style={styles.detailValue}
+                    accessibilityLabel={`Reported ${formattedTimestamp}`}
+                  >
+                    {formattedTimestamp}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Row 3: Location (Full Width) */}
+            {/* Row 3: Location (Full Width) */}
+            <View style={styles.gridRow}>
+              <View style={[styles.detailItem, styles.fullWidth]}>
                 <View style={styles.detailIcon}>
                   <Ionicons name="location-outline" size={16} color="#6B7280" />
                 </View>
                 <View style={styles.detailContent}>
                   <Text style={styles.detailLabel}>Location</Text>
+                  
+                  {/* CHANGE IS HERE: Use location_name, fallback to coordinates */}
                   <Text 
                     style={styles.detailValue}
-                    numberOfLines={1}
-                    accessibilityLabel={`Location: ${coordinates}`}
+                    numberOfLines={2} // Allow 2 lines for long addresses
+                    accessibilityLabel={`Location: ${incident.location_name || coordinates}`}
                   >
-                    {coordinates}
+                    {incident.location_name || coordinates}
+                  </Text>
+                  
+                </View>
+              </View>
+            </View>
+
+            {/* Row 4: Source URL (Full Width) */}
+            <View style={styles.gridRow}>
+              <View style={[styles.detailItem, styles.fullWidth]}>
+                <View style={styles.detailIcon}>
+                  <Ionicons name="link-outline" size={16} color="#6B7280" />
+                </View>
+                <View style={styles.detailContent}>
+                  <Text style={styles.detailLabel}>Source URL</Text>
+                  <Text 
+                    style={[styles.detailValue, styles.urlText]}
+                    numberOfLines={1}
+                    ellipsizeMode="middle"
+                    accessibilityLabel={`Source URL: ${incident.source_url || 'N/A'}`}
+                  >
+                    {incident.source_url || 'N/A'}
                   </Text>
                 </View>
               </View>
             </View>
+
           </View>
 
           {/* Description */}
-          {incident.text && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Description</Text>
-              <Text 
-                style={styles.description}
-                accessibilityLabel={`Description: ${incident.text}`}
-              >
-                {incident.text}
-              </Text>
-            </View>
-          )}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Description</Text>
+            <Text 
+              style={styles.description}
+              accessibilityLabel={`Description: ${incident.text && !incident.text.startsWith('http') ? incident.text : 'N/A'}`}
+            >
+              {incident.text && !incident.text.startsWith('http') ? incident.text : 'N/A'}
+            </Text>
+          </View>
 
           {/* Attached Media */}
-          {incident.image_url && (
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Ionicons name="image-outline" size={16} color="#6B7280" />
-                <Text style={styles.sectionLabel}>Attached Media</Text>
-              </View>
-              <IncidentImage imageUrl={incident.image_url} />
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="image-outline" size={16} color="#6B7280" />
+              <Text style={styles.sectionLabel}>Attached Media</Text>
             </View>
-          )}
-
-          {/* Source URL */}
-          {incident.source_url && (
-            <View style={styles.sourceUrlContainer}>
-              <View style={styles.detailIcon}>
-                <Ionicons name="link-outline" size={16} color="#6B7280" />
-              </View>
-              <View style={styles.detailContent}>
-                <Text style={styles.detailLabel}>Source URL</Text>
-                <Text 
-                  style={[styles.detailValue, styles.urlText]}
-                  numberOfLines={1}
-                  accessibilityLabel={`Source URL: ${incident.source_url}`}
-                >
-                  {incident.source_url}
-                </Text>
-              </View>
-            </View>
-          )}
+            <IncidentImage imageUrl={incident.image_url} />
+          </View>
 
           {/* Directions Button */}
           <DirectionsButton
@@ -232,7 +256,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 12,
     elevation: 8,
-    maxHeight: 450,
+    maxHeight: 600,
   },
   scrollView: {
     flexGrow: 0,
@@ -257,11 +281,14 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#9CA3AF',
   },
+  badgeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   criticalBadge: {
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
-    marginLeft: 8,
   },
   criticalBadgeText: {
     fontSize: 11,
@@ -269,6 +296,12 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+  },
+  closeButton: {
+    fontSize: 20,
+    color: '#6B7280',
+    fontWeight: '300',
+    marginLeft: 8,
   },
   section: {
     marginBottom: 16,
@@ -300,14 +333,6 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: '#374151',
   },
-  sourceUrlContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingTop: 12,
-    marginBottom: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-  },
   urlText: {
     color: '#3B82F6',
   },
@@ -317,14 +342,22 @@ const styles = StyleSheet.create({
   },
   gridRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
+    flexWrap: 'wrap', 
+    marginBottom: 0,
   },
   detailItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    flex: 1,
-    marginHorizontal: 4,
+    //flex: 1,
+    width: '50%', // Default to half width
+    marginBottom: 12, 
+    paddingRight: 8,
+  },
+  fullWidth: {
+    width: '100%',
+    //flex: 1,
+    marginRight: 0,
+    marginLeft: 0,
   },
   detailIcon: {
     marginRight: 8,
