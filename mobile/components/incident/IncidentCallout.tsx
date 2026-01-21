@@ -12,6 +12,8 @@ import {
   useWindowDimensions,
   Platform,
   Pressable,
+  Linking,
+  Image,
 } from 'react-native';
 import { Callout } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
@@ -186,25 +188,56 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
               </View>
             </View>
 
-            {/* Row 4: Source URL (Full Width) */}
+            {/* Row 4: Source Context (Rich Preview) */}
             <View style={styles.gridRow}>
               <View style={[styles.detailItem, styles.fullWidth]}>
                 <View style={styles.detailIcon}>
                   <Ionicons name="link-outline" size={16} color="#6B7280" />
                 </View>
                 <View style={styles.detailContent}>
-                  <Text style={styles.detailLabel}>Source URL</Text>
-                  <Text 
-                    style={[styles.detailValue, styles.urlText]}
-                    numberOfLines={1}
-                    ellipsizeMode="middle"
-                    accessibilityLabel={`Source URL: ${incident.source_url || 'N/A'}`}
-                  >
-                    {incident.source_url || 'N/A'}
-                  </Text>
+                  <Text style={styles.detailLabel}>Source Context</Text>
+                  
+                  {incident.og_title ? (
+                    /* OPTION A: RICH PREVIEW CARD (Bot found data!) */
+                    <Pressable 
+                      style={styles.linkCard}
+                      onPress={() => incident.source_url && Linking.openURL(incident.source_url)}
+                    >
+                      {/* Left blue strip for style */}
+                      <View style={styles.linkCardStrip} />
+                      
+                      <View style={styles.linkCardContent}>
+                        <Text style={styles.linkTitle} numberOfLines={2}>
+                          {incident.og_title}
+                        </Text>
+                        
+                        {incident.og_description && (
+                          <Text style={styles.linkDesc} numberOfLines={2}>
+                            {incident.og_description}
+                          </Text>
+                        )}
+                        
+                        <View style={styles.linkFooter}>
+                          <Text style={styles.linkDomain}>
+                            {incident.og_site || 'External Link'} ↗
+                          </Text>
+                        </View>
+                      </View>
+                    </Pressable>
+                  ) : (
+                    /* OPTION B: FALLBACK (Bot found nothing, just show the link) */
+                    <Text 
+                      style={[styles.detailValue, styles.urlText]}
+                      numberOfLines={1}
+                      onPress={() => incident.source_url && Linking.openURL(incident.source_url)}
+                    >
+                      {incident.source_url || 'N/A'}
+                    </Text>
+                  )}
                 </View>
               </View>
             </View>
+
 
           </View>
 
@@ -377,6 +410,48 @@ const styles = StyleSheet.create({
     color: '#1F2937',
     fontWeight: '500',
     lineHeight: 18,
+  },
+  /* --- NEW STYLES FOR LINK PREVIEW --- */
+  linkCard: {
+    marginTop: 6,
+    backgroundColor: '#F9FAFB', // Light grey background
+    borderRadius: 8,
+    flexDirection: 'row',
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#E5E7EB', // Subtle border
+  },
+  linkCardStrip: {
+    width: 4,
+    backgroundColor: '#3B82F6', // The blue accent line on the left
+  },
+  linkCardContent: {
+    padding: 10,
+    flex: 1,
+  },
+  linkTitle: {
+    fontSize: 13,
+    fontWeight: '700', // Bold title
+    color: '#1F2937',
+    marginBottom: 4,
+    lineHeight: 18,
+  },
+  linkDesc: {
+    fontSize: 12,
+    color: '#6B7280', // Greener text for description
+    lineHeight: 16,
+    marginBottom: 8,
+  },
+  linkFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  linkDomain: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#3B82F6', // Blue link color
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   arrow: {
     position: 'absolute',
