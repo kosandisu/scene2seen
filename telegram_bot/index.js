@@ -88,7 +88,7 @@ bot.onText(/\/start/, (msg) => {
     data: {},
   });
 
-  bot.sendMessage(msg.chat.id, "🚨 *NEW INCIDENT REPORT*\nFirst, select the incident type:", {
+  bot.sendMessage(msg.chat.id, "🚨 *NEW INCIDENT REPORT*\n\nFirst, select the incident type:", {
     parse_mode: "Markdown",
     reply_markup: {
       inline_keyboard: [
@@ -216,31 +216,37 @@ bot.on("message", async (msg) => {
     return;
   }
 
-//need to fix the location. 
-//saves only half of the add
+  //need to fix the location. 
+  //saves only half of the add
+  //need to fix the location. 
+  //saves only half of the add
   if (msg.location && state.step === "LOCATION") {
 
     bot.sendMessage(msg.chat.id, "⏳ Saving report...");
 
-    //Using open street map for now
-    let addressString = null;
+    let addressString = "Unknown Location";
+
     try {
-      const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${msg.location.latitude}&lon=${msg.location.longitude}`;
-      const res = await fetch(url, { headers: { "User-Agent": "DisasterResponseBot/1.0" } });
+      const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+      if (!apiKey) throw new Error("Missing Google API Key");
+
+      const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${msg.location.latitude},${msg.location.longitude}&key=${apiKey}&language=en`;
+
+      const res = await fetch(url);
       const data = await res.json();
 
-      if (data && data.address) {
-        const landmark = data.address.amenity || data.address.building || '';
-        const road = data.address.road || '';
-        const dong = data.address.neighbourhood || '';
-        const gu = data.address.suburb || data.address.district || '';
+      if (data.status === "OK" && data.results.length > 0) {
+        const fullAddress = data.results[0].formatted_address;
 
-        if (landmark) addressString = `${landmark} (${dong || gu})`;
-        else if (road) addressString = `${road}, ${gu}`;
-        else addressString = [dong, gu, data.address.city].filter(Boolean).join(', ');
+        // Cleanup: Remove "South Korea" and Zip Codes (5 digits) to make it shorter, include???
+        addressString = fullAddress.replace(", South Korea", "").replace(/\d{5}/, "").trim();
+
+        if (addressString.endsWith(",")) addressString = addressString.slice(0, -1);
       }
     } catch (e) {
-      console.error("Reverse geocode failed");
+      console.error("Google Geocode failed:", e.message);
+      // Fallback: Just save coordinates if API fails
+      addressString = `Lat: ${msg.location.latitude}, Lng: ${msg.location.longitude}`;
     }
 
     // firebase saving logic
@@ -267,7 +273,7 @@ bot.on("message", async (msg) => {
         created_at: new Date(),
       });
 
-      bot.sendMessage(msg.chat.id, "✅ **Report Saved!**\nThank you for contributing.", { parse_mode: "Markdown" });
+      bot.sendMessage(msg.chat.id, `✅ **Report Saved!**\n\nThank you for your contribution.`, { parse_mode: "Markdown" });
     } catch (err) {
       console.error("Firestore error:", err);
       bot.sendMessage(msg.chat.id, "❌ Error saving report.");
