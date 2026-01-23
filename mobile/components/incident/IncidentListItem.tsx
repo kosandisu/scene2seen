@@ -22,13 +22,10 @@ interface IncidentListItemProps {
 }
 
 export function IncidentListItem({ incident, onPress }: IncidentListItemProps) {
-  const priorityColor = incident.priority
-    ? PRIORITY_CONFIG[incident.priority].markerColor
-    : DEFAULT_MARKER_COLOR;
+  const priorityConfig = incident.priority ? PRIORITY_CONFIG[incident.priority] : undefined;
+  const priorityColor = priorityConfig?.markerColor ?? DEFAULT_MARKER_COLOR;
 
-  const priorityLabel = incident.priority
-    ? PRIORITY_CONFIG[incident.priority].label
-    : null;
+  const priorityLabel = priorityConfig?.label ?? null;
 
   return (
     <TouchableOpacity
