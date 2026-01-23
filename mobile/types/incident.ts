@@ -19,6 +19,10 @@ export interface IncidentReport {
   location_name?: string | null;
   priority?: PriorityLevel;
   critical_level?: CriticalLevel;
+  og_title?: string | null;
+  og_description?: string | null;
+  og_image?: string | null;
+  og_site?: string | null;
 }
 
 export interface UserLocation {
