@@ -7,10 +7,9 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { IncidentMarker, IncidentDashboard } from "../../components/incident";
 import type { IncidentReport } from "../../types/incident";
 
-// Default map region (Yangon, Myanmar)
 const DEFAULT_REGION = {
-  latitude: 16.8409,
-  longitude: 96.1735,
+  latitude: 37.5665,
+  longitude: 126.9780,
   latitudeDelta: 0.5,
   longitudeDelta: 0.5,
 };

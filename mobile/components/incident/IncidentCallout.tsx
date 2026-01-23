@@ -178,7 +178,7 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
                   {/* CHANGE IS HERE: Use location_name, fallback to coordinates */}
                   <Text 
                     style={styles.detailValue}
-                    numberOfLines={2} // Allow 2 lines for long addresses
+                    numberOfLines={3} // Allow 3 lines for long addresses
                     accessibilityLabel={`Location: ${incident.location_name || coordinates}`}
                   >
                     {incident.location_name || coordinates}

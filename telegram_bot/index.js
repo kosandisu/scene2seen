@@ -218,8 +218,6 @@ bot.on("message", async (msg) => {
 
   //need to fix the location. 
   //saves only half of the add
-  //need to fix the location. 
-  //saves only half of the add
   if (msg.location && state.step === "LOCATION") {
 
     bot.sendMessage(msg.chat.id, "⏳ Saving report...");
