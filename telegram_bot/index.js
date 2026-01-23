@@ -3,24 +3,18 @@ import TelegramBot from "node-telegram-bot-api";
 import { initializeApp } from "firebase/app";
 import { getFirestore, collection, addDoc } from "firebase/firestore";
 import fetch from "node-fetch";
-import cheerio from "cheerio";
-
-/* -------------------- ENV -------------------- */
+import * as cheerio from "cheerio";
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
-
 if (!BOT_TOKEN) {
-  console.error("BOT_TOKEN missing in .env");
+  console.error("BOT_TOKEN missing");
   process.exit(1);
 }
 
-/* -------------------- TELEGRAM -------------------- */
-
 const bot = new TelegramBot(BOT_TOKEN, { polling: true });
+console.log("Telegram bot running");
 
-console.log("🤖 Telegram bot is running");
-
-/* -------------------- FIREBASE -------------------- */
+/*firebase setup */
 
 const firebaseConfig = {
   apiKey: process.env.FB_API_KEY,
@@ -33,124 +27,238 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-
 const reportsRef = collection(db, "reports");
 
-/* -------------------- GROUPING BUFFER -------------------- */
-
-const pendingReports = new Map();
-// key: telegram user id
-// value: { text?, source_url?, createdAt }
-
-/* -------------------- HELPERS -------------------- */
+// userId -> { step, data }
+const reportState = new Map();
 
 function extractUrl(text) {
   if (!text) return null;
   const match = text.match(/https?:\/\/\S+/);
   return match ? match[0] : null;
 }
+
 async function fetchOgMetadata(url) {
   try {
     const res = await fetch(url, {
-      headers: {
-        "User-Agent": "Mozilla/5.0", // important or FB blocks you
-      },
+      headers: { "User-Agent": "Mozilla/5.0" },
       timeout: 8000,
     });
-
-    if (!res.ok) throw new Error("Failed to fetch page");
+    if (!res.ok) throw new Error("Fetch failed");
 
     const html = await res.text();
     const $ = cheerio.load(html);
 
-    const getMeta = (prop) =>
-      $(`meta[property="${prop}"]`).attr("content") ||
-      $(`meta[name="${prop}"]`).attr("content") ||
+    const getMeta = (p) =>
+      $(`meta[property="${p}"]`).attr("content") ||
+      $(`meta[name="${p}"]`).attr("content") ||
       null;
 
-    const og = {
+    return {
       title: getMeta("og:title") || $("title").text() || null,
-      description: getMeta("og:description") || null,
-      image: getMeta("og:image") || null,
-      site_name: getMeta("og:site_name") || null,
+      description: getMeta("og:description"),
+      image: getMeta("og:image"),
+      site_name: getMeta("og:site_name"),
     };
-
-    return og;
-  } catch (err) {
-    console.error("OG fetch failed:", err.message);
+  } catch (e) {
+    console.error("OG fetch failed:", e.message);
     return null;
   }
 }
 
-/* -------------------- MESSAGE HANDLER -------------------- */
+// /start -> type -> des -> sns -> media(-) -> loc
+
+/*
+incident type 
+severity level (-)
+Brief description of the incident 
+Sns link to the incident - fb , x
+Upload media (-)
+location sharing  
+*/
+
+
+bot.onText(/\/start/, (msg) => {
+  if (msg.chat.type !== "private") return;
+  const userId = msg.from.id;
+
+  // Initialize State
+  reportState.set(userId, {
+    step: "TYPE",
+    data: {},
+  });
+
+  bot.sendMessage(msg.chat.id, "🚨 *NEW INCIDENT REPORT*\nFirst, select the incident type:", {
+    parse_mode: "Markdown",
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "🔥 Fire", callback_data: "type_fire" }, { text: "🚑 Accident", callback_data: "type_accident" }],
+        [{ text: "🌊 Flood", callback_data: "type_flood" }, { text: "🏗 Collapse", callback_data: "type_collapse" }],
+        [{ text: "❓ Other", callback_data: "type_other" }]
+      ]
+    }
+  });
+});
+
+//for type and severity levels
+bot.on("callback_query", async (callbackQuery) => {
+  const msg = callbackQuery.message;
+  const userId = callbackQuery.from.id;
+  const data = callbackQuery.data;
+  const state = reportState.get(userId);
+
+  if (!state) return;
+  bot.answerCallbackQuery(callbackQuery.id); // Stop loading animation
+
+  if (state.step === "TYPE" && data.startsWith("type_")) {
+    const selectedType = data.replace("type_", "");
+    state.data.type = selectedType;
+
+    state.step = "SEVERITY";
+    reportState.set(userId, state);
+
+    bot.editMessageText(`✅ Type: ${selectedType.toUpperCase()}`, {
+      chat_id: msg.chat.id,
+      message_id: msg.message_id
+    });
+
+    bot.sendMessage(msg.chat.id, "⚠️ Assign Severity Level to the incident:", {
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: "🔴 High", callback_data: "sev_high" }],
+          [{ text: "🟠 Medium", callback_data: "sev_medium" }],
+          [{ text: "🟢 Low", callback_data: "sev_low" }],
+          [{ text: "⏭ Skip (Unknown)", callback_data: "sev_skip" }]
+        ]
+      }
+    });
+  }
+
+  else if (state.step === "SEVERITY" && data.startsWith("sev_")) {
+
+    // if click skip-> unidentified (grey as tag) and if else high, med, low
+    const selectedSev = data === "sev_skip" ? "unidentified" : data.replace("sev_", "");
+
+    state.data.severity = selectedSev;
+
+    // Move to next step snsurl
+    state.step = "URL";
+    reportState.set(userId, state);
+
+    //should test it with like double links or sth.
+    bot.editMessageText(`✅ Severity: ${selectedSev.toUpperCase()}`, {
+      chat_id: msg.chat.id,
+      message_id: msg.message_id
+    });
+
+    bot.sendMessage(
+      msg.chat.id,
+      "🔗 *SNS LINK REQUIRED*\n\nPlease paste the link to the social media post (Facebook, X, etc):",
+      { parse_mode: "Markdown" }
+    );
+  }
+});
+
 
 bot.on("message", async (msg) => {
+  if (msg.chat.type !== "private" || msg.text?.startsWith("/")) return;
+
   const userId = msg.from?.id;
-  if (!userId) return;
+  const state = reportState.get(userId);
+  if (!state) return;
 
-  const existing = pendingReports.get(userId) || {
-    createdAt: Date.now(),
-  };
+  if (state.step === "URL") {
+    const url = extractUrl(msg.text);
 
-  /* ---------- LOCATION (FINALIZE REPORT) ---------- */
-  if (msg.location) {
-    console.log("Location received from", userId);
+    if (!url) {
+      bot.sendMessage(msg.chat.id, "❌ **Invalid Link**\n\nWe need a valid SNS source link to verify this incident.\n👇 *Paste the link below:*", { parse_mode: "Markdown" });
+      return;
+    }
 
-    // --- NEW CODE START: Get Address Name ---
+    //URL Accepted
+    bot.sendMessage(msg.chat.id, "🔎 Verifying link...", { disable_notification: true });
+    const ogMeta = await fetchOgMetadata(url);
+
+    state.data.source_url = url;
+    state.data.og_meta = ogMeta;
+
+    state.step = "DETAILS";
+    reportState.set(userId, state);
+
+    bot.sendMessage(
+      msg.chat.id,
+      "Link Accepted!\n\n📝 **DESCRIPTION REQUIRED**\n\nPlease write a brief description (e.g., 'Large fire visible from highway').\n*If you upload media, put text in the caption!*",
+      { parse_mode: "Markdown" }
+    );
+    return;
+  }
+
+  if (state.step === "DETAILS") {
+    // Capture manual text OR photo caption
+    const rawText = msg.text || msg.caption || "";
+
+    if (!rawText || rawText.trim().length === 0) {
+      bot.sendMessage(msg.chat.id, "❌ **Description Missing**\n\nYou must provide a text description to proceed.", { parse_mode: "Markdown" });
+      return;
+    }
+
+    //Text Accepted
+    state.data.text = rawText;
+
+    state.step = "LOCATION";
+    reportState.set(userId, state);
+
+    bot.sendMessage(
+      msg.chat.id,
+      "📍 *FINAL STEP*\n\nPlease share the location using Telegram location sharing (Paperclip -> Location).",
+      { parse_mode: "Markdown" }
+    );
+    return;
+  }
+
+//need to fix the location. 
+//saves only half of the add
+  if (msg.location && state.step === "LOCATION") {
+
+    bot.sendMessage(msg.chat.id, "⏳ Saving report...");
+
+    //Using open street map for now
     let addressString = null;
     try {
-
       const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${msg.location.latitude}&lon=${msg.location.longitude}`;
-
-
-      const response = await fetch(url, {
-        headers: {
-          'User-Agent': 'DisasterResponseBot/1.0'
-        }
-      });
-
-      const data = await response.json();
+      const res = await fetch(url, { headers: { "User-Agent": "DisasterResponseBot/1.0" } });
+      const data = await res.json();
 
       if (data && data.address) {
-        // Landmark/Building Name
-        const landmark = data.address.amenity || data.address.building || data.address.leisure || data.address.shop || data.address.tourism || '';
-
-        // Street / Intersection
+        const landmark = data.address.amenity || data.address.building || '';
         const road = data.address.road || '';
-
-        //Neighborhood (Dong)
         const dong = data.address.neighbourhood || '';
         const gu = data.address.suburb || data.address.district || '';
 
-        if (landmark) {
-          // If building name exists, use 
-          addressString = `${landmark} (${dong || gu})`;
-        }
-        else if (road) {
-          // No landmark, street
-          addressString = `${road}, ${gu}`;
-        }
-        else {
-          // Fallback to just the area
-          addressString = [dong, gu, data.address.city].filter(Boolean).join(', ');
-        }
-
-        if (!addressString) addressString = data.display_name;
+        if (landmark) addressString = `${landmark} (${dong || gu})`;
+        else if (road) addressString = `${road}, ${gu}`;
+        else addressString = [dong, gu, data.address.city].filter(Boolean).join(', ');
       }
-    } catch (geoErr) {
-      console.error("Geocoding failed, saving without address:", geoErr);
+    } catch (e) {
+      console.error("Reverse geocode failed");
     }
 
+    // firebase saving logic
     try {
       await addDoc(reportsRef, {
-        text: existing.text ?? null,
-        source_url: existing.source_url ?? null,
+        type: state.data.type,
+        priority: state.data.severity,
+        text: state.data.text,
+        source_url: state.data.source_url,
 
-        og_title: existing.og_meta?.title ?? null,
-        og_description: existing.og_meta?.description ?? null,
-        og_image: existing.og_meta?.image ?? null,
-        og_site: existing.og_meta?.site_name ?? null,
+        // Open Graph meta data
+        //only works for fb for now
+        og_title: state.data.og_meta?.title ?? null, //sns post owner
+        og_description: state.data.og_meta?.description ?? null, //sns caption
+        og_image: state.data.og_meta?.image ?? null,//takes only the first pic for multiple ones
+        og_site: state.data.og_meta?.site_name ?? null, //currently not showing
 
+        // Location
         reporter_lat: msg.location.latitude,
         reporter_lng: msg.location.longitude,
         location_name: addressString,
@@ -159,50 +267,12 @@ bot.on("message", async (msg) => {
         created_at: new Date(),
       });
 
-
-      console.log("Report saved to Firestore with address:", addressString);
+      bot.sendMessage(msg.chat.id, "✅ **Report Saved!**\nThank you for contributing.", { parse_mode: "Markdown" });
     } catch (err) {
       console.error("Firestore error:", err);
+      bot.sendMessage(msg.chat.id, "❌ Error saving report.");
     }
 
-    pendingReports.delete(userId);
-    return;
+    reportState.delete(userId);
   }
-
-  /* ---------- TEXT ---------- */
-  if (msg.text) {
-    const url = extractUrl(msg.text);
-    const isOnlyUrl = url && msg.text.trim() === url;
-
-    let ogMeta = existing.og_meta ?? null;
-
-    if (url && !existing.og_meta) {
-      ogMeta = await fetchOgMetadata(url);
-    }
-
-    pendingReports.set(userId, {
-      ...existing,
-      text: isOnlyUrl ? null : msg.text,
-      source_url: url ?? existing.source_url,
-      og_meta: ogMeta,
-      createdAt: Date.now(),
-    });
-
-
-    console.log("Text / URL received from", userId);
-  }
-
 });
-
-/* -------------------- CLEANUP (OPTIONAL) -------------------- */
-
-setInterval(() => {
-  const now = Date.now();
-
-  for (const [userId, report] of pendingReports) {
-    if (now - report.createdAt > 5 * 60 * 1000) {
-      pendingReports.delete(userId);
-      console.log("Cleared stale report for", userId);
-    }
-  }
-}, 60 * 1000);
