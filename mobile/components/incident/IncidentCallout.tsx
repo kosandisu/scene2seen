@@ -15,7 +15,7 @@ import {
   Linking,
   Image,
 } from 'react-native';
-import { Callout } from 'react-native-maps';
+import { Callout, CalloutSubview } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import type { IncidentReport } from '../../types/incident';
 import { formatTimestamp } from '../../utils/date';
@@ -103,9 +103,11 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
               >
                 <Text style={styles.criticalBadgeText}>{criticalStyle.text}</Text>
               </View>
-              <Pressable onPress={handleClose} hitSlop={8}>
-                <Text style={styles.closeButton}>✕</Text>
-              </Pressable>
+              <CalloutSubview onPress={handleClose}>
+                <Pressable onPress={handleClose} hitSlop={8}>
+                  <Text style={styles.closeButton}>✕</Text>
+                </Pressable>
+              </CalloutSubview>
             </View>
           </View>
 

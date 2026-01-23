@@ -3,7 +3,7 @@
  * Custom map marker with priority-based coloring
  */
 
-import React from 'react';
+import React, { useRef } from 'react';
 import { View, StyleSheet, Platform } from 'react-native';
 import { Marker } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,16 +16,17 @@ interface IncidentMarkerProps {
 }
 
 export function IncidentMarker({ incident }: IncidentMarkerProps) {
-  const markerColor = incident.priority 
-    ? PRIORITY_CONFIG[incident.priority].markerColor 
-    : DEFAULT_MARKER_COLOR;
+  const markerRef = useRef<any>(null);
+  const priorityConfig = incident.priority ? PRIORITY_CONFIG[incident.priority] : undefined;
+  const markerColor = priorityConfig?.markerColor ?? DEFAULT_MARKER_COLOR;
 
-  const priorityLabel = incident.priority 
-    ? `${PRIORITY_CONFIG[incident.priority].label} priority` 
+  const priorityLabel = priorityConfig
+    ? `${priorityConfig.label} priority`
     : 'No priority set';
 
   return (
     <Marker
+      ref={markerRef}
       coordinate={{
         latitude: incident.reporter_lat,
         longitude: incident.reporter_lng,
@@ -64,7 +65,10 @@ export function IncidentMarker({ incident }: IncidentMarkerProps) {
       </View>
 
       {/* Callout Popup */}
-      <IncidentCallout incident={incident} />
+      <IncidentCallout
+        incident={incident}
+        onClose={() => markerRef.current?.hideCallout()}
+      />
     </Marker>
   );
 }
