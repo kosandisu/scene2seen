@@ -18,6 +18,7 @@ import {
 import { Callout, CalloutSubview } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import type { IncidentReport } from '../../types/incident';
+import { INCIDENT_TYPE_LABELS } from '../../types/incident';
 import { formatTimestamp } from '../../utils/date';
 import { IncidentImage } from './IncidentImage';
 import { DirectionsButton } from './DirectionsButton';
@@ -125,8 +126,7 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
                 <View style={styles.detailContent}>
                   <Text style={styles.detailLabel}>Type</Text>
                   <Text style={styles.detailValue}>
-                    {/*later incident.type */}
-                    null
+                    {incident.type ? INCIDENT_TYPE_LABELS[incident.type] : 'Other'}
                   </Text>
                 </View>
               </View>

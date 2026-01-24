@@ -3,15 +3,14 @@
  * Draggable bottom sheet showing list of all incidents
  */
 
-import React, { useCallback, useRef, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  FlatList,
+  SectionList,
+  TouchableOpacity,
   useWindowDimensions,
-  Platform,
-  StatusBar,
 } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -25,14 +24,18 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import type { IncidentReport } from '../../types/incident';
+import type { IncidentReport, PriorityLevel, IncidentType } from '../../types/incident';
 import { IncidentListItem } from './IncidentListItem';
+import { PRIORITY_CONFIG } from '../../constants/priority';
+import { INCIDENT_TYPE_LABELS } from '../../types/incident';
 
 interface IncidentDashboardProps {
   incidents: IncidentReport[];
   onIncidentPress: (incident: IncidentReport) => void;
   isLoading?: boolean;
 }
+
+type GroupByOption = 'location' | 'type' | 'priority';
 
 // Spring configuration for smooth animations
 const SPRING_CONFIG = {
@@ -55,6 +58,7 @@ export function IncidentDashboard({
 }: IncidentDashboardProps) {
   const { height: screenHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  const [groupBy, setGroupBy] = useState<GroupByOption>('location');
   
   // Calculate actual heights
   const collapsedHeight = screenHeight * SNAP_POINTS.COLLAPSED;
@@ -209,6 +213,100 @@ export function IncidentDashboard({
     []
   );
 
+  const classifyIncidentType = useCallback((incident: IncidentReport): IncidentType => {
+    const text = [
+      incident.text,
+      incident.og_title,
+      incident.og_description,
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+
+    const matches = (keywords: string[]) =>
+      keywords.some((word) => text.includes(word));
+
+    if (matches(['fire', 'wildfire', 'smoke', 'blaze', 'burning'])) return 'fire';
+    if (matches(['flood', 'inundation', 'flash flood', 'overflow'])) return 'flood';
+    if (matches(['accident', 'crash', 'collision', 'vehicle', 'car', 'truck', 'bus']))
+      return 'accident';
+    if (matches(['collapse', 'collapsed', 'building collapse', 'bridge collapse', 'structural']))
+      return 'collapse';
+
+    return 'other';
+  }, []);
+
+  const getGroupKey = useCallback((incident: IncidentReport, option: GroupByOption) => {
+    switch (option) {
+      case 'type':
+        return (incident.type ?? classifyIncidentType(incident)) as IncidentType;
+      case 'priority':
+        return incident.priority || 'unset';
+      case 'location':
+      default:
+        return incident.location_name || 'Unknown location';
+    }
+  }, [classifyIncidentType]);
+
+  const sections = useMemo(() => {
+    const map = new Map<string, IncidentReport[]>();
+    incidents.forEach((incident) => {
+      const key = getGroupKey(incident, groupBy);
+      const list = map.get(key);
+      if (list) {
+        list.push(incident);
+      } else {
+        map.set(key, [incident]);
+      }
+    });
+
+    const entries = Array.from(map.entries()).map(([key, data]) => {
+      if (groupBy === 'priority') {
+        // Only 'high', 'medium', 'low' are valid keys for PRIORITY_CONFIG
+        let priorityKey: 'high' | 'medium' | 'low' | 'unset';
+        if (key === 'high' || key === 'medium' || key === 'low') {
+          priorityKey = key;
+        } else {
+          priorityKey = 'unset';
+        }
+        const priorityConfig =
+          priorityKey !== 'unset' ? PRIORITY_CONFIG[priorityKey] : undefined;
+        return {
+          title: priorityConfig?.label ?? 'Unspecified',
+          data,
+          priorityColor: priorityConfig?.markerColor ?? '#9CA3AF',
+          priorityKey,
+        };
+      }
+
+      if (groupBy === 'type') {
+        const typeKey: IncidentType =
+          key === 'fire' || key === 'flood' || key === 'accident' || key === 'collapse'
+            ? key
+            : 'other';
+        return {
+          title: INCIDENT_TYPE_LABELS[typeKey],
+          data,
+          typeKey,
+        };
+      }
+      return { title: key, data };
+    });
+
+    if (groupBy === 'priority') {
+      return entries.sort((a, b) => {
+        const order = ['high', 'medium', 'low', 'unset'];
+        const valid = (k: any): 'high' | 'medium' | 'low' | 'unset' =>
+          k === 'high' || k === 'medium' || k === 'low' ? k : 'unset';
+        const aKey = 'priorityKey' in a ? valid(a.priorityKey) : 'unset';
+        const bKey = 'priorityKey' in b ? valid(b.priorityKey) : 'unset';
+        return order.indexOf(aKey) - order.indexOf(bKey);
+      });
+    }
+
+    return entries.sort((a, b) => a.title.localeCompare(b.title));
+  }, [groupBy, incidents, getGroupKey]);
+
   return (
     <>
       {/* Background overlay */}
@@ -246,13 +344,58 @@ export function IncidentDashboard({
               <Text style={styles.countText}>{incidents.length} reports</Text>
             </View>
           </View>
+          <View style={styles.groupByRow}>
+            <Text style={styles.groupByLabel}>Group by</Text>
+            <View style={styles.groupToggleContainer}>
+              {([
+                { key: 'location', label: 'Location' },
+                { key: 'type', label: 'Type' },
+                { key: 'priority', label: 'Priority' },
+              ] as const).map((option) => {
+                const isActive = groupBy === option.key;
+                return (
+                  <TouchableOpacity
+                    key={option.key}
+                    style={[styles.groupToggleButton, isActive && styles.groupToggleButtonActive]}
+                    onPress={() => setGroupBy(option.key)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Group by ${option.label}`}
+                  >
+                    <Text
+                      style={[
+                        styles.groupToggleText,
+                        isActive && styles.groupToggleTextActive,
+                      ]}
+                    >
+                      {option.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
         </View>
 
         {/* List Content */}
-        <FlatList
-          data={incidents}
+        <SectionList
+          sections={sections}
           renderItem={renderItem}
           keyExtractor={keyExtractor}
+          renderSectionHeader={({ section }) => (
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionHeaderRow}>
+                {'priorityColor' in section && (
+                  <View
+                    style={[
+                      styles.priorityDot,
+                      { backgroundColor: section.priorityColor },
+                    ]}
+                  />
+                )}
+                <Text style={styles.sectionHeaderText}>{section.title}</Text>
+              </View>
+            </View>
+          )}
           contentContainerStyle={[
             styles.listContent,
             { paddingBottom: insets.bottom + 20 },
@@ -261,6 +404,7 @@ export function IncidentDashboard({
           ListEmptyComponent={ListEmptyComponent}
           bounces={true}
           overScrollMode="always"
+          stickySectionHeadersEnabled={true}
         />
       </Animated.View>
     </>
@@ -360,9 +504,62 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#3B82F6',
   },
+  groupByRow: {
+    marginTop: 10,
+  },
+  groupByLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6B7280',
+    marginBottom: 6,
+  },
+  groupToggleContainer: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  groupToggleButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: '#F3F4F6',
+  },
+  groupToggleButtonActive: {
+    backgroundColor: '#3B82F6',
+  },
+  groupToggleText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  groupToggleTextActive: {
+    color: '#FFFFFF',
+  },
   listContent: {
     paddingTop: 12,
     flexGrow: 1,
+  },
+  sectionHeader: {
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    backgroundColor: '#F9FAFB',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  priorityDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  sectionHeaderText: {
+    fontSize: 12,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    color: '#6B7280',
   },
   emptyContainer: {
     alignItems: 'center',

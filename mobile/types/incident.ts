@@ -6,8 +6,19 @@ export type PriorityLevel = 'high' | 'medium' | 'low' | null;
 
 export type CriticalLevel = 'high' | 'medium' | 'low' | 'unidentified';
 
+export type IncidentType = 'fire' | 'flood' | 'accident' | 'collapse' | 'other';
+
+export const INCIDENT_TYPE_LABELS: Record<IncidentType, string> = {
+  fire: 'Fire',
+  flood: 'Flood',
+  accident: 'Accident',
+  collapse: 'Collapse',
+  other: 'Other',
+};
+
 export interface IncidentReport {
   id: string;
+  type?: IncidentType | null;
   text: string | null;
   source_url: string | null;
   reporter_lat: number;
