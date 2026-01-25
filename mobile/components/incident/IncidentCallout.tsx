@@ -115,7 +115,7 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
           {/* Incident Details Grid */}
           <View style={styles.detailsGrid}>
             
-            {/* Row 1: Type & Reported By (Side by Side) */}
+            
             <View style={styles.gridRow}>
               {/* Type */}
               <View style={styles.detailItem}>
@@ -126,7 +126,7 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
                   <Text style={styles.detailLabel}>Type</Text>
                   {/**telegram_bot htl mr 이미 cap pyin yan */}
                   <Text style={styles.detailValue}>
-                    {incident.type ? incident.type.charAt(0).toUpperCase() + incident.type.slice(1) : 'Unknown'}
+                    {incident.type}
                   </Text>
                 </View>
               </View>

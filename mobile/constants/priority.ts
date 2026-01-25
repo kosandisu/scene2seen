@@ -16,24 +16,24 @@ export const PRIORITY_CONFIG: Record<NonNullable<PriorityLevel>, PriorityConfig>
   high: {
     label: 'High',
     color: '#FFFFFF',
-    backgroundColor: '#DC2626',
-    markerColor: '#DC2626',
+    backgroundColor: '#EF4444',
+    markerColor: '#EF4444',
     ariaLabel: 'Set priority to high - urgent attention required',
   },
   medium: {
     label: 'Medium',
     color: '#000000',
-    backgroundColor: '#F59E0B',
-    markerColor: '#F59E0B',
+    backgroundColor: '#F97316',
+    markerColor: '#F97316',
     ariaLabel: 'Set priority to medium - moderate attention required',
   },
   low: {
     label: 'Low',
     color: '#FFFFFF',
-    backgroundColor: '#10B981',
-    markerColor: '#10B981',
+    backgroundColor: '#22C55E',
+    markerColor: '#22C55E',
     ariaLabel: 'Set priority to low - can be addressed later',
   },
 };
 
-export const DEFAULT_MARKER_COLOR = '#3B82F6'; // Blue for unset priority
+export const DEFAULT_MARKER_COLOR = '#9CA3AF'; //for unidentified

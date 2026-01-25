@@ -49,11 +49,13 @@ export function IncidentMarker({ incident }: IncidentMarkerProps) {
             />
           </View>
         </View>
+        
         <View 
           style={[styles.markerPoint, { borderTopColor: markerColor }]} 
         />
         
-        {/* Priority indicator ring */}
+        {/* Priority indicator ring
+        removed for now
         {incident.priority && (
           <View 
             style={[
@@ -62,6 +64,9 @@ export function IncidentMarker({ incident }: IncidentMarkerProps) {
             ]} 
           />
         )}
+        
+        */}
+        
       </View>
 
       {/* Callout Popup */}
