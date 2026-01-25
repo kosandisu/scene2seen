@@ -2,6 +2,19 @@
 import { StyleSheet, Platform } from 'react-native';
 
 export const styles = StyleSheet.create({
+    absoluteContainer: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        justifyContent: 'flex-end',
+        zIndex: 1000,
+    },
+    backdrop: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0,0,0,0.2)',
+    },
     callout: {
         // Width is set dynamically
     },
