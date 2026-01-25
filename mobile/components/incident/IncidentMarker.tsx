@@ -1,22 +1,16 @@
-/**
- * Incident Marker Component
- * Custom map marker with priority-based coloring
- */
-
 import React, { useRef } from 'react';
-import { View, StyleSheet, Platform } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Marker } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import type { IncidentReport } from '../../types/incident';
 import { PRIORITY_CONFIG, DEFAULT_MARKER_COLOR } from '../../constants/priority';
-import { IncidentCallout } from './IncidentCallout';
 
 interface IncidentMarkerProps {
   incident: IncidentReport;
+  onPress: () => void;
 }
 
-export function IncidentMarker({ incident }: IncidentMarkerProps) {
-  const markerRef = useRef<any>(null);
+export function IncidentMarker({ incident, onPress }: IncidentMarkerProps) {
   const priorityConfig = incident.priority ? PRIORITY_CONFIG[incident.priority] : undefined;
   const markerColor = priorityConfig?.markerColor ?? DEFAULT_MARKER_COLOR;
 
@@ -26,16 +20,18 @@ export function IncidentMarker({ incident }: IncidentMarkerProps) {
 
   return (
     <Marker
-      ref={markerRef}
       coordinate={{
         latitude: incident.reporter_lat,
         longitude: incident.reporter_lng,
+      }}
+      onPress={(e) => {
+        e.stopPropagation();
+        onPress();
       }}
       tracksViewChanges={false}
       accessibilityLabel={`Incident marker. ${priorityLabel}. ${incident.text || 'No description'}`}
       accessibilityHint="Tap to view incident details"
     >
-      {/* Custom Marker View */}
       <View 
         style={styles.markerContainer}
         accessibilityRole="button"
@@ -53,27 +49,7 @@ export function IncidentMarker({ incident }: IncidentMarkerProps) {
         <View 
           style={[styles.markerPoint, { borderTopColor: markerColor }]} 
         />
-        
-        {/* Priority indicator ring
-        removed for now
-        {incident.priority && (
-          <View 
-            style={[
-              styles.priorityRing,
-              { borderColor: markerColor },
-            ]} 
-          />
-        )}
-        
-        */}
-        
       </View>
-
-      {/* Callout Popup */}
-      <IncidentCallout
-        incident={incident}
-        onClose={() => markerRef.current?.hideCallout()}
-      />
     </Marker>
   );
 }

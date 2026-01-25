@@ -15,7 +15,7 @@ import {
   Linking,
   Image,
 } from 'react-native';
-import { Callout, CalloutSubview } from 'react-native-maps';
+// REMOVED: Callout, CalloutSubview (Not needed for Overlay)
 import { Ionicons } from '@expo/vector-icons';
 import type { IncidentReport } from '../../types/incident';
 import { formatTimestamp } from '../../utils/date';
@@ -28,10 +28,9 @@ interface IncidentCalloutProps {
 }
 
 export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
-  const { width: screenWidth } = useWindowDimensions();
+  const { height: screenHeight } = useWindowDimensions();
 
-  // Calculate responsive width (max 360px, min 300px, or 90% of screen)
-  const calloutWidth = Math.min(Math.max(screenWidth * 0.9, 300), 360);
+  // REMOVED: calloutWidth calculation (Overlay uses 100% width)
 
   const formattedTimestamp = formatTimestamp(incident.created_at);
   const criticalLevel = incident.priority;
@@ -74,9 +73,11 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
   };
 
   return (
-    <Callout tooltip style={[styles.callout, { width: calloutWidth }]}>
+    <View style={styles.absoluteContainer} pointerEvents="box-none">
+      <Pressable style={styles.backdrop} onPress={handleClose} />
+      
       <View 
-        style={styles.container}
+        style={[styles.container, { maxHeight: screenHeight * 0.7 }]}
         accessible
         accessibilityLabel="Incident details popup"
       >
@@ -103,11 +104,11 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
               >
                 <Text style={styles.criticalBadgeText}>{criticalStyle.text}</Text>
               </View>
-              <CalloutSubview onPress={handleClose}>
-                <Pressable onPress={handleClose} hitSlop={8}>
-                  <Text style={styles.closeButton}>✕</Text>
-                </Pressable>
-              </CalloutSubview>
+              
+              {/* Removed CalloutSubview wrapper */}
+              <Pressable onPress={handleClose} hitSlop={8}>
+                <Text style={styles.closeButton}>✕</Text>
+              </Pressable>
             </View>
           </View>
 
@@ -124,7 +125,6 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
                 </View>
                 <View style={styles.detailContent}>
                   <Text style={styles.detailLabel}>Type</Text>
-                  {/**telegram_bot htl mr 이미 cap pyin yan */}
                   <Text style={styles.detailValue}>
                     {incident.type}
                   </Text>
@@ -272,29 +272,39 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
             locationName={incident.location_name}
           />
         </ScrollView>
-
-        {/* Callout Arrow */}
-        <View style={styles.arrow} />
       </View>
-    </Callout>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  callout: {
-    // Width is set dynamically
+  // New Overlay Styles
+  absoluteContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'flex-end',
+    zIndex: 1000,
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.2)',
   },
   container: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
     padding: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
     elevation: 8,
-    maxHeight: 700,
+    width: '100%',
   },
+  // Existing styles below
   scrollView: {
     flexGrow: 0,
   },
@@ -458,6 +468,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   arrow: {
+    // Kept but unused in Overlay
     position: 'absolute',
     bottom: -10,
     left: '50%',
