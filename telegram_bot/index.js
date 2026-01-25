@@ -11,8 +11,44 @@ if (!BOT_TOKEN) {
   process.exit(1);
 }
 
-const bot = new TelegramBot(BOT_TOKEN, { polling: true });
-console.log("Telegram bot running");
+const bot = new TelegramBot(BOT_TOKEN, {
+  polling: {
+    autoStart: false,
+    interval: 300,
+    params: { timeout: 10 },
+  },
+});
+
+bot.on("polling_error", (error) => {
+  console.error("Polling error:", error?.response?.body || error);
+});
+
+bot.on("webhook_error", (error) => {
+  console.error("Webhook error:", error?.response?.body || error);
+});
+
+(async () => {
+  try {
+    await bot.deleteWebHook();
+  } catch (error) {
+    console.error("Failed to delete webhook:", error?.response?.body || error);
+  }
+  try {
+    await bot.setMyCommands([
+      {
+        command: "start",
+        description: "Start a new incident report",
+      },
+    ]);
+    if (typeof bot.setChatMenuButton === "function") {
+      await bot.setChatMenuButton({ menu_button: { type: "commands" } });
+    }
+  } catch (error) {
+    console.error("Failed to set bot commands:", error?.response?.body || error);
+  }
+  bot.startPolling();
+  console.log("Telegram bot running");
+})();
 
 /*firebase setup */
 
