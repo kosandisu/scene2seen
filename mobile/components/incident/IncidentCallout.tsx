@@ -12,7 +12,8 @@ import {
   Pressable,
   Linking,
 } from 'react-native';
-import { styles } from './IncidentCallout.styles';
+import { useNavigation } from '@react-navigation/native'; 
+import { styles } from '../styles/IncidentCallout.styles';
 
 import { Ionicons } from '@expo/vector-icons';
 import type { IncidentReport } from '../../types/incident';
@@ -27,6 +28,7 @@ interface IncidentCalloutProps {
 
 export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
   const { height: screenHeight } = useWindowDimensions();
+  const navigation = useNavigation<any>(); 
 
   // REMOVED: calloutWidth calculation (Overlay uses 100% width)
 
@@ -70,12 +72,22 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
     }
   };
 
+  // Helper to handle source click
+  const handleSourcePress = () => {
+    if (incident.source_url) {
+      navigation.navigate('SourceWeb', { 
+        url: incident.source_url,
+        title: incident.og_title || 'Incident Source'
+      });
+    }
+  };
+
   return (
     <View style={styles.absoluteContainer} pointerEvents="box-none">
       <Pressable style={styles.backdrop} onPress={handleClose} />
       
       <View 
-        style={[styles.container, { maxHeight: screenHeight * 0.7 }]}
+        style={[styles.container, { maxHeight: screenHeight * 0.75 }]}
         accessible
         accessibilityLabel="Incident details popup"
       >
@@ -199,10 +211,10 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
                   <Text style={styles.detailLabel}>Source Context</Text>
                   
                   {incident.og_title ? (
-                    /* OPTION A: RICH PREVIEW CARD (Bot found data!) */
+                    /* tiny preview card with poster name + desc */
                     <Pressable 
                       style={styles.linkCard}
-                      onPress={() => incident.source_url && Linking.openURL(incident.source_url)}
+                      onPress={handleSourcePress}
                     >
                       {/* Left blue strip for style */}
                       <View style={styles.linkCardStrip} />
@@ -219,19 +231,20 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
                         )}
                         
                         <View style={styles.linkFooter}>
-                          {/**external link aint pressable because the og_site doesn't appear in the firebase save */}
                           <Text style={styles.linkDomain}>
-                            {incident.og_site || 'External Link'} ↗
+                            {incident.og_site || 'See Original Post'} ↗
                           </Text>
                         </View>
                       </View>
+                      {/* Right blue strip for style (Symmetry) */}
+                      <View style={styles.linkCardStrip} />
                     </Pressable>
                   ) : (
                     /* the fallback link also isn't showing */
                     <Text 
                       style={[styles.detailValue, styles.urlText]}
                       numberOfLines={1}
-                      onPress={() => incident.source_url && Linking.openURL(incident.source_url)}
+                      onPress={handleSourcePress}
                     >
                       {incident.source_url || 'N/A'}
                     </Text>

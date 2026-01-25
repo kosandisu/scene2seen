@@ -7,12 +7,13 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Image,
-  StyleSheet,
   ActivityIndicator,
   Text,
   TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { styles } from '../styles/IncidentImage.styles';
+
 
 interface IncidentImageProps {
   imageUrl: string | null | undefined;
@@ -83,35 +84,3 @@ export function IncidentImage({ imageUrl, onPress }: IncidentImageProps) {
     </ImageWrapper>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    marginBottom: 12,
-    borderRadius: 8,
-    overflow: 'hidden',
-    backgroundColor: '#F3F4F6',
-    width: '100%', 
-  },
-  image: {
-    width: '100%',
-  },
-  loadingOverlay: {
-    width: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#E5E7EB',
-  },
-  errorContainer: {
-    height: 150, 
-    backgroundColor: '#F3F4F6',
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  errorText: {
-    marginTop: 4,
-    fontSize: 12,
-    color: '#9CA3AF',
-  },
-});

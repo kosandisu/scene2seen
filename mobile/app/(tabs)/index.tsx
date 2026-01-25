@@ -5,6 +5,8 @@ import { db } from "../../firebase";
 import MapView, { PROVIDER_DEFAULT } from "react-native-maps";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { IncidentMarker, IncidentDashboard } from "../../components/incident";
+// 👇 NEW IMPORT
+import { IncidentCallout } from "../../components/incident/IncidentCallout"; 
 import type { IncidentReport } from "../../types/incident";
 
 const DEFAULT_REGION = {
@@ -18,6 +20,10 @@ export default function HomeScreen() {
   const [reports, setReports] = useState<IncidentReport[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // 👇 NEW STATE: Tracks the open popup
+  const [selectedIncident, setSelectedIncident] = useState<IncidentReport | null>(null);
+  
   const mapRef = useRef<MapView>(null);
 
   // Subscribe to Firestore updates
@@ -59,8 +65,9 @@ export default function HomeScreen() {
     [reports]
   );
 
-  // Handle incident selection from dashboard
+  // Handle incident selection (From Marker OR Dashboard)
   const handleIncidentPress = useCallback((incident: IncidentReport) => {
+    // 1. Animate Map
     if (mapRef.current) {
       mapRef.current.animateToRegion(
         {
@@ -69,9 +76,11 @@ export default function HomeScreen() {
           latitudeDelta: 0.01,
           longitudeDelta: 0.01,
         },
-        500 // Animation duration in ms
+        500
       );
     }
+    // 2. Open the Callout Popup
+    setSelectedIncident(incident);
   }, []);
 
   // Render loading state
@@ -115,15 +124,21 @@ export default function HomeScreen() {
         showsScale
         rotateEnabled
         accessibilityLabel="Map showing incident reports"
-        accessibilityHint="Tap on markers to view incident details"
+        // 👇 Close popup when clicking empty map space
+        onPress={() => setSelectedIncident(null)}
       >
         {validReports.map((report) => (
-          <IncidentMarker key={report.id} incident={report} />
+          <IncidentMarker 
+             key={report.id} 
+             incident={report} 
+             // 👇 Passes the click handler correctly now
+             onPress={() => handleIncidentPress(report)} 
+          />
         ))}
       </MapView>
 
-      {/* Report count badge */}
-      {validReports.length > 0 && (
+      {/* Report count badge (Only show when popup is CLOSED) */}
+      {validReports.length > 0 && !selectedIncident && (
         <View
           style={styles.countBadge}
           accessibilityLabel={`${validReports.length} incident${validReports.length === 1 ? "" : "s"} on map`}
@@ -135,12 +150,23 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* Bottom Sheet Dashboard */}
-      <IncidentDashboard
-        incidents={validReports}
-        onIncidentPress={handleIncidentPress}
-        isLoading={isLoading}
-      />
+      {/* 👇 1. SHOW CALLOUT (If an incident is selected) */}
+      {selectedIncident && (
+        <IncidentCallout 
+          incident={selectedIncident} 
+          onClose={() => setSelectedIncident(null)} 
+        />
+      )}
+
+      {/* 👇 2. SHOW DASHBOARD (Only if NO popup is open) */}
+      {!selectedIncident && (
+        <IncidentDashboard
+          incidents={validReports}
+          onIncidentPress={handleIncidentPress}
+          isLoading={isLoading}
+        />
+      )}
+      
     </GestureHandlerRootView>
   );
 }
@@ -177,7 +203,7 @@ const styles = StyleSheet.create({
   },
   countBadge: {
     position: "absolute",
-    top: 16,
+    top: 60, // Moved down slightly to allow for search bars/headers
     right: 16,
     backgroundColor: "#FFFFFF",
     paddingHorizontal: 12,
