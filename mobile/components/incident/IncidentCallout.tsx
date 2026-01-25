@@ -34,7 +34,7 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
   const calloutWidth = Math.min(Math.max(screenWidth * 0.9, 300), 360);
 
   const formattedTimestamp = formatTimestamp(incident.created_at);
-  const criticalLevel = incident.critical_level || 'unidentified';
+  const criticalLevel = incident.priority;
   
   // Generate incident ID based on created_at timestamp for sequential ordering
   const getIncidentNumber = () => {
@@ -48,10 +48,10 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
   
   const incidentId = `INC-${String(getIncidentNumber()).padStart(3, '0')}`;
   
-  // Format coordinates in one line
-  const coordinates = `${incident.reporter_lat.toFixed(4)}, ${incident.reporter_lng.toFixed(4)}`;
+  // no fallback for now
+  //const coordinates = `${incident.reporter_lat.toFixed(4)}, ${incident.reporter_lng.toFixed(4)}`;
 
-  // Get critical level style
+  // critical level tag at the top 
   const getCriticalLevelStyle = () => {
     switch (criticalLevel) {
       case 'high':
@@ -124,9 +124,9 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
                 </View>
                 <View style={styles.detailContent}>
                   <Text style={styles.detailLabel}>Type</Text>
+                  {/**telegram_bot htl mr 이미 cap pyin yan */}
                   <Text style={styles.detailValue}>
-                    {/*later incident.type */}
-                    null
+                    {incident.type ? incident.type.charAt(0).toUpperCase() + incident.type.slice(1) : 'Unknown'}
                   </Text>
                 </View>
               </View>
@@ -137,13 +137,14 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
                   <Ionicons name="person-outline" size={16} color="#6B7280" />
                 </View>
                 <View style={styles.detailContent}>
-                  <Text style={styles.detailLabel}>Reported By</Text>
+                  <Text style={styles.detailLabel}>Reported By</Text>          
                   <Text 
                     style={styles.detailValue}
                     numberOfLines={1}
-                    accessibilityLabel={`Reported by: ${incident.reporter_name || 'Anonymous'}`}
+                    
+                    accessibilityLabel={`Reported by: ${incident.og_title || 'Anonymous'}`}
                   >
-                    {incident.reporter_name || 'Anonymous'}
+                    {incident.og_title || 'Anonymous'}
                   </Text>
                 </View>
               </View>
@@ -168,7 +169,7 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
             </View>
 
             {/* Row 3: Location (Full Width) */}
-            {/* Row 3: Location (Full Width) */}
+            
             <View style={styles.gridRow}>
               <View style={[styles.detailItem, styles.fullWidth]}>
                 <View style={styles.detailIcon}>
@@ -177,20 +178,20 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
                 <View style={styles.detailContent}>
                   <Text style={styles.detailLabel}>Location</Text>
                   
-                  {/* CHANGE IS HERE: Use location_name, fallback to coordinates */}
+                  {/* used to have coordinates as fallback but rmv-ed em */}
                   <Text 
                     style={styles.detailValue}
-                    numberOfLines={3} // Allow 3 lines for long addresses
-                    accessibilityLabel={`Location: ${incident.location_name || coordinates}`}
+                    numberOfLines={3} 
+                    accessibilityLabel={`Location: ${incident.location_name}`}
                   >
-                    {incident.location_name || coordinates}
+                    {incident.location_name}
                   </Text>
                   
                 </View>
               </View>
             </View>
 
-            {/* Row 4: Source Context (Rich Preview) */}
+            {/* Source context htr pee embedded preview */}
             <View style={styles.gridRow}>
               <View style={[styles.detailItem, styles.fullWidth]}>
                 <View style={styles.detailIcon}>
@@ -220,6 +221,7 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
                         )}
                         
                         <View style={styles.linkFooter}>
+                          {/**external link aint pressable because the og_site doesn't appear in the firebase save */}
                           <Text style={styles.linkDomain}>
                             {incident.og_site || 'External Link'} ↗
                           </Text>
@@ -227,7 +229,7 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
                       </View>
                     </Pressable>
                   ) : (
-                    /* OPTION B: FALLBACK (Bot found nothing, just show the link) */
+                    /* the fallback link also isn't showing */
                     <Text 
                       style={[styles.detailValue, styles.urlText]}
                       numberOfLines={1}
@@ -254,13 +256,13 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
             </Text>
           </View>
 
-          {/* Attached Media */}
+          {/* need to change the image size*/}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Ionicons name="image-outline" size={16} color="#6B7280" />
               <Text style={styles.sectionLabel}>Attached Media</Text>
             </View>
-            <IncidentImage imageUrl={incident.image_url} />
+            <IncidentImage imageUrl={incident.og_image} />
           </View>
 
           {/* Directions Button */}
@@ -291,7 +293,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 12,
     elevation: 8,
-    maxHeight: 600,
+    maxHeight: 700,
   },
   scrollView: {
     flexGrow: 0,
@@ -411,7 +413,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#1F2937',
     fontWeight: '500',
-    lineHeight: 18,
+    lineHeight: 24,
   },
   /* --- NEW STYLES FOR LINK PREVIEW --- */
   linkCard: {
@@ -436,12 +438,12 @@ const styles = StyleSheet.create({
     fontWeight: '700', // Bold title
     color: '#1F2937',
     marginBottom: 4,
-    lineHeight: 18,
+    lineHeight: 20,
   },
   linkDesc: {
     fontSize: 12,
     color: '#6B7280', // Greener text for description
-    lineHeight: 16,
+    lineHeight: 18,
     marginBottom: 8,
   },
   linkFooter: {
