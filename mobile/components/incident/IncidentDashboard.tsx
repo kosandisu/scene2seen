@@ -398,7 +398,7 @@ export function IncidentDashboard({
           )}
           contentContainerStyle={[
             styles.listContent,
-            { paddingBottom: insets.bottom + 20 },
+            { paddingBottom: insets.bottom + 100 },
           ]}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={ListEmptyComponent}
