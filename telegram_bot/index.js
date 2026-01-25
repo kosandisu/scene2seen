@@ -92,9 +92,9 @@ bot.onText(/\/start/, (msg) => {
     parse_mode: "Markdown",
     reply_markup: {
       inline_keyboard: [
-        [{ text: "🔥 Fire", callback_data: "type_fire" }, { text: "🚑 Accident", callback_data: "type_accident" }],
-        [{ text: "🌊 Flood", callback_data: "type_flood" }, { text: "🏗 Collapse", callback_data: "type_collapse" }],
-        [{ text: "❓ Other", callback_data: "type_other" }]
+        [{ text: "🔥 Fire", callback_data: "type_Fire" }, { text: "🚑 Accident", callback_data: "type_Accident" }],
+        [{ text: "🌊 Flood", callback_data: "type_Flood" }, { text: "🏗 Collapse", callback_data: "type_Collapse" }],
+        [{ text: "❓ Other", callback_data: "type_Other" }]
       ]
     }
   });

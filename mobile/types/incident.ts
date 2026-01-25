@@ -18,18 +18,18 @@ export const INCIDENT_TYPE_LABELS: Record<IncidentType, string> = {
 
 export interface IncidentReport {
   id: string;
-  type?: IncidentType | null;
+  type?: string | null;
   text: string | null;
   source_url: string | null;
   reporter_lat: number;
   reporter_lng: number;
-  source_platform: string;
+  source_platform: string; 
   created_at: Date | { seconds: number; nanoseconds: number };
-  image_url?: string | null;
+  //image_url?: string | null;
   reporter_name?: string | null;
   location_name?: string | null;
   priority?: PriorityLevel;
-  critical_level?: CriticalLevel;
+  //critical_level?: CriticalLevel;
   og_title?: string | null;
   og_description?: string | null;
   og_image?: string | null;

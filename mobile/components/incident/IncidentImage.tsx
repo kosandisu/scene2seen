@@ -1,18 +1,19 @@
 /**
  * Incident Image Component
- * Displays incident image with loading and error states
+ * Fix: Uses dynamic aspect ratio to prevent cropping
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Image,
-  StyleSheet,
   ActivityIndicator,
   Text,
   TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { styles } from '../styles/IncidentImage.styles';
+
 
 interface IncidentImageProps {
   imageUrl: string | null | undefined;
@@ -22,9 +23,27 @@ interface IncidentImageProps {
 export function IncidentImage({ imageUrl, onPress }: IncidentImageProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  // Default to 16:9 ratio (approx 1.77) to prevent layout jump
+  const [aspectRatio, setAspectRatio] = useState(1.77); 
+
+  useEffect(() => {
+    if (!imageUrl) return;
+    Image.getSize(
+      imageUrl,
+      (width, height) => {
+        setAspectRatio(width / height);
+        setIsLoading(false);
+      },
+      (error) => {
+        console.error("Failed to get image size:", error);
+        setHasError(true);
+        setIsLoading(false);
+      }
+    );
+  }, [imageUrl]);
 
   if (!imageUrl) {
-    return null; // Gracefully handle missing images
+    return null;
   }
 
   if (hasError) {
@@ -47,61 +66,21 @@ export function IncidentImage({ imageUrl, onPress }: IncidentImageProps) {
       onPress={onPress}
       accessibilityRole={onPress ? 'imagebutton' : 'image'}
       accessibilityLabel="Incident photo"
-      accessibilityHint={onPress ? 'Double tap to view full image' : undefined}
     >
       {isLoading && (
-        <View style={styles.loadingOverlay}>
+        <View style={[styles.loadingOverlay, { aspectRatio }]}>
           <ActivityIndicator 
             size="small" 
             color="#3B82F6"
-            accessibilityLabel="Loading image"
           />
         </View>
       )}
+      
       <Image
         source={{ uri: imageUrl }}
-        style={styles.image}
-        resizeMode="cover"
-        onLoad={() => setIsLoading(false)}
-        onError={() => {
-          setIsLoading(false);
-          setHasError(true);
-        }}
+        style={[styles.image, { aspectRatio }]} 
+        resizeMode="contain" 
       />
     </ImageWrapper>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    marginBottom: 12,
-    borderRadius: 8,
-    overflow: 'hidden',
-    backgroundColor: '#F3F4F6',
-  },
-  image: {
-    width: '100%',
-    height: 150,
-    borderRadius: 8,
-  },
-  loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F3F4F6',
-    zIndex: 1,
-  },
-  errorContainer: {
-    height: 80,
-    backgroundColor: '#F3F4F6',
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  errorText: {
-    marginTop: 4,
-    fontSize: 12,
-    color: '#9CA3AF',
-  },
-});
