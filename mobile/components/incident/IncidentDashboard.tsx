@@ -35,7 +35,7 @@ interface IncidentDashboardProps {
   isLoading?: boolean;
 }
 
-type GroupByOption = 'location' | 'type' | 'priority';
+type GroupByOption = 'location' | 'type' | 'priority' | 'date';
 
 // Spring configuration for smooth animations
 const SPRING_CONFIG = {
@@ -236,17 +236,50 @@ export function IncidentDashboard({
     return 'other';
   }, []);
 
+  const getIncidentDate = useCallback((incident: IncidentReport): Date | null => {
+    const timestamp = incident.created_at;
+    if (!timestamp) return null;
+    if (timestamp instanceof Date) return timestamp;
+    if (typeof timestamp === 'object' && 'seconds' in timestamp) {
+      return new Date(timestamp.seconds * 1000);
+    }
+    return null;
+  }, []);
+
+  const getIncidentDateKey = useCallback((incident: IncidentReport): string => {
+    const date = getIncidentDate(incident);
+    if (!date || isNaN(date.getTime())) return 'unknown';
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }, [getIncidentDate]);
+
+  const formatDateLabel = useCallback((dateKey: string): string => {
+    if (dateKey === 'unknown') return 'Unknown date';
+    const [year, month, day] = dateKey.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    if (isNaN(date.getTime())) return 'Unknown date';
+    return new Intl.DateTimeFormat('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    }).format(date);
+  }, []);
+
   const getGroupKey = useCallback((incident: IncidentReport, option: GroupByOption) => {
     switch (option) {
       case 'type':
         return (incident.type ?? classifyIncidentType(incident)) as IncidentType;
       case 'priority':
         return incident.priority || 'unset';
+      case 'date':
+        return getIncidentDateKey(incident);
       case 'location':
       default:
         return incident.location_name || 'Unknown location';
     }
-  }, [classifyIncidentType]);
+  }, [classifyIncidentType, getIncidentDateKey]);
 
   const sections = useMemo(() => {
     const map = new Map<string, IncidentReport[]>();
@@ -290,6 +323,13 @@ export function IncidentDashboard({
           typeKey,
         };
       }
+      if (groupBy === 'date') {
+        return {
+          title: formatDateLabel(key),
+          data,
+          dateKey: key,
+        };
+      }
       return { title: key, data };
     });
 
@@ -301,6 +341,17 @@ export function IncidentDashboard({
         const aKey = 'priorityKey' in a ? valid(a.priorityKey) : 'unset';
         const bKey = 'priorityKey' in b ? valid(b.priorityKey) : 'unset';
         return order.indexOf(aKey) - order.indexOf(bKey);
+      });
+    }
+
+    if (groupBy === 'date') {
+      return entries.sort((a, b) => {
+        const aKey = 'dateKey' in a ? a.dateKey : 'unknown';
+        const bKey = 'dateKey' in b ? b.dateKey : 'unknown';
+        if (aKey === 'unknown' && bKey === 'unknown') return 0;
+        if (aKey === 'unknown') return 1;
+        if (bKey === 'unknown') return -1;
+        return bKey.localeCompare(aKey);
       });
     }
 
@@ -351,6 +402,7 @@ export function IncidentDashboard({
                 { key: 'location', label: 'Location' },
                 { key: 'type', label: 'Type' },
                 { key: 'priority', label: 'Priority' },
+                { key: 'date', label: 'Date' },
               ] as const).map((option) => {
                 const isActive = groupBy === option.key;
                 return (
