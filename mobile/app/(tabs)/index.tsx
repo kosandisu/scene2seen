@@ -1,5 +1,5 @@
 import UserDashboard from "../../components/user/UserDashboard";
-import { StyleSheet, View, Text, ActivityIndicator } from "react-native";
+import { StyleSheet, View, Text, ActivityIndicator, TouchableOpacity } from "react-native";
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { collection, onSnapshot, FirestoreError } from "firebase/firestore";
 import { db } from "../../firebase";
@@ -11,6 +11,7 @@ import { IncidentCallout } from "../../components/incident/IncidentCallout";
 import type { IncidentReport } from "../../types/incident";
 // 👇 NEW TYPE IMPORT
 import IncidentForm from "../../components/user/IncidentForm";
+import { Ionicons } from "@expo/vector-icons";
 
 const DEFAULT_REGION = {
   latitude: 37.5665,
@@ -153,6 +154,19 @@ if (!showMap) {
         ))}
       </MapView>
 
+      <View style={styles.publicViewHeader} pointerEvents="box-none">
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => setShowMap(false)}
+          accessibilityRole="button"
+          accessibilityLabel="Back to dashboard"
+        >
+          <Ionicons name="arrow-back" size={20} color="#111827" />
+          <Text style={styles.backButtonText}>Back</Text>
+        </TouchableOpacity>
+        <Text style={styles.publicViewTitle}>Public View</Text>
+      </View>
+
       {/* Report count badge (Only show when popup is CLOSED) */}
       {validReports.length > 0 && !selectedIncident && (
         <View
@@ -243,5 +257,41 @@ const styles = StyleSheet.create({
     color: "#6B7280",
     textTransform: "uppercase",
     letterSpacing: 0.5,
+  },
+  publicViewHeader: {
+    position: "absolute",
+    top: 50,
+    left: 16,
+    right: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  backButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  backButtonText: {
+    marginLeft: 6,
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#111827",
+  },
+  publicViewTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#111827",
+    textShadowColor: "rgba(255, 255, 255, 0.7)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
 });
