@@ -12,8 +12,10 @@ import {
   Pressable,
   Linking,
 } from 'react-native';
+import { useState, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native'; 
 import { styles } from '../styles/IncidentCallout.styles';
+import { GOOGLE_MAPS_API_KEY } from '../../constants/config';
 
 import { Ionicons } from '@expo/vector-icons';
 import type { IncidentReport } from '../../types/incident';
@@ -31,8 +33,82 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
   const { height: screenHeight } = useWindowDimensions();
   const navigation = useNavigation<any>(); 
 
-  // REMOVED: calloutWidth calculation (Overlay uses 100% width)
+  //location full -> landmark if exists st.
+  const [displayLocation, setDisplayLocation] = useState(incident.location_name || 'unknown location');
+  const [isFetchingPlace, setIsFetchingPlace] = useState(false);
 
+  useEffect(() => {
+    const fetchLandmarkName = async () => {
+      if (!incident.reporter_lat || !incident.reporter_lng) return;
+
+      setIsFetchingPlace(true);
+      try {
+        const response = await fetch('https://places.googleapis.com/v1/places:searchNearby', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Goog-Api-Key': GOOGLE_MAPS_API_KEY,
+            'X-Goog-FieldMask': 'places.displayName',
+          },
+          body: JSON.stringify({
+            includedTypes: [
+              'library',
+              'preschool',
+              'secondary_school',
+              'primary_school',
+              'bank',
+              'atm',
+              'convenience_store', 
+              'store',
+              'hospital', 
+              'school', 
+              'government_office', 
+              'tourist_attraction', 
+              'restaurant', 
+              'transit_station',
+              'church',
+              'parking',
+              'city_hall',
+              'fire_station',
+              'post_office',
+              'government_office',
+              'apartment_building',
+              'apartment_complex',
+              'police',
+              'bus_stop',
+              'bus_station',
+            ],
+            
+            maxResultCount: 1,
+            locationRestriction: {
+              circle: {
+                center: {
+                  latitude: incident.reporter_lat,
+                  longitude: incident.reporter_lng,
+                },
+                radius: 500, //500 metres 
+              },
+            },
+            rankPreference: 'DISTANCE',
+          }),
+        });
+
+        const data = await response.json();
+        //console.log("📍 Places API Response:", JSON.stringify(data, null, 2));
+
+        if (data.places && data.places.length > 0) {
+          setDisplayLocation(data.places[0].displayName.text);
+        }
+      } catch (error) {
+        console.error("Error fetching landmark:", error);
+      } finally {
+        setIsFetchingPlace(false);
+      }
+    };
+
+    fetchLandmarkName();
+  }, [incident.reporter_lat, incident.reporter_lng]);
+  
   const formattedTimestamp = formatTimestamp(incident.created_at);
   const criticalLevel = incident.priority;
   
@@ -47,10 +123,8 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
   };
   
   const incidentId = `INC-${String(getIncidentNumber()).padStart(3, '0')}`;
-  
-  // no fallback for now
-  //const coordinates = `${incident.reporter_lat.toFixed(4)}, ${incident.reporter_lng.toFixed(4)}`;
 
+  //using the user report from telegram
   // critical level tag at the top 
   const getCriticalLevelStyle = () => {
     switch (criticalLevel) {
@@ -116,18 +190,13 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
                 <Text style={styles.criticalBadgeText}>{criticalStyle.text}</Text>
               </View>
               
-              {/* Removed CalloutSubview wrapper */}
               <Pressable onPress={handleClose} hitSlop={8}>
                 <Text style={styles.closeButton}>✕</Text>
               </Pressable>
             </View>
           </View>
 
-          {/* Incident Details Grid (3x2 with Source URL) */}
-          {/* Incident Details Grid */}
-          <View style={styles.detailsGrid}>
-            
-            
+          <View style={styles.detailsGrid}> 
             <View style={styles.gridRow}>
               {/* Type */}
               <View style={styles.detailItem}>
@@ -161,7 +230,6 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
               </View>
             </View>
 
-            {/* Row 2: Reported Time (Full Width) */}
             <View style={styles.gridRow}>
               <View style={[styles.detailItem, styles.fullWidth]}>
                 <View style={styles.detailIcon}>
@@ -179,8 +247,6 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
               </View>
             </View>
 
-            {/* Row 3: Location (Full Width) */}
-            
             <View style={styles.gridRow}>
               <View style={[styles.detailItem, styles.fullWidth]}>
                 <View style={styles.detailIcon}>
@@ -189,18 +255,30 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
                 <View style={styles.detailContent}>
                   <Text style={styles.detailLabel}>Location</Text>
                   
-                  {/* used to have coordinates as fallback but rmv-ed em */}
                   <Text 
-                    style={styles.detailValue}
-                    numberOfLines={3} 
-                    accessibilityLabel={`Location: ${incident.location_name}`}
+                    style={[
+                      styles.detailValue, 
+                      { color: isFetchingPlace ? '#9CA3AF' : '#1F2937' } // Gray while loading
+                    ]}
+                    numberOfLines={3}
+                    accessibilityLabel={`Location: ${displayLocation}`}
                   >
-                    {incident.location_name}
+                    {/**pin if loc shi */}
+                    {(!isFetchingPlace && displayLocation !== incident.location_name) ? "📍 " : ""}
+                    {displayLocation}
                   </Text>
                   
+                  {/* Optional: Show original address as subtext if we found a Landmark */}
+                  {(!isFetchingPlace && displayLocation !== incident.location_name) && (
+                    <Text style={{fontSize: 11, color: '#9CA3AF', marginTop: 2}} numberOfLines={1}>
+                      {incident.location_name}
+                    </Text>
+                  )}
+
                 </View>
               </View>
             </View>
+            
 
             {/* Source context htr pee embedded preview */}
             <View style={styles.gridRow}>
@@ -212,14 +290,11 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
                   <Text style={styles.detailLabel}>Source Context</Text>
                   
                   {incident.og_title ? (
-                    /* tiny preview card with poster name + desc */
                     <Pressable 
                       style={styles.linkCard}
                       onPress={handleSourcePress}
                     >
-                      {/* Left blue strip for style */}
                       <View style={styles.linkCardStrip} />
-                      
                       <View style={styles.linkCardContent}>
                         <Text style={styles.linkTitle} numberOfLines={2}>
                           {incident.og_title}
@@ -237,11 +312,9 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
                           </Text>
                         </View>
                       </View>
-                      {/* Right blue strip for style (Symmetry) */}
                       <View style={styles.linkCardStrip} />
                     </Pressable>
                   ) : (
-                    /* the fallback link also isn't showing */
                     <Text 
                       style={[styles.detailValue, styles.urlText]}
                       numberOfLines={1}
@@ -253,8 +326,6 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
                 </View>
               </View>
             </View>
-
-
           </View>
 
           {/* Description */}
@@ -268,7 +339,6 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
             </Text>
           </View>
 
-          {/* need to change the image size*/}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Ionicons name="image-outline" size={16} color="#6B7280" />
@@ -277,7 +347,7 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
             <IncidentImage imageUrl={incident.og_image} />
           </View>
 
-          {/* Directions Button */}
+          {/* currently gets located to google maps in the browser */}
           <DirectionsButton
             destinationLat={incident.reporter_lat}
             destinationLng={incident.reporter_lng}
