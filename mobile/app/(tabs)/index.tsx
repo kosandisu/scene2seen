@@ -1,3 +1,4 @@
+import UserDashboard from "../../components/user/UserDashboard";
 import { StyleSheet, View, Text, ActivityIndicator } from "react-native";
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { collection, onSnapshot, FirestoreError } from "firebase/firestore";
@@ -8,6 +9,8 @@ import { IncidentMarker, IncidentDashboard } from "../../components/incident";
 // 👇 NEW IMPORT
 import { IncidentCallout } from "../../components/incident/IncidentCallout"; 
 import type { IncidentReport } from "../../types/incident";
+// 👇 NEW TYPE IMPORT
+import IncidentForm from "../../components/user/IncidentForm";
 
 const DEFAULT_REGION = {
   latitude: 37.5665,
@@ -17,6 +20,8 @@ const DEFAULT_REGION = {
 };
 
 export default function HomeScreen() {
+  const [showMap, setShowMap] = useState(false);
+  const [showReport, setShowReport] = useState(false);
   const [reports, setReports] = useState<IncidentReport[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -110,7 +115,18 @@ export default function HomeScreen() {
       </View>
     );
   }
-
+  if (showReport) {
+    return <IncidentForm onClose={() => setShowReport(false)} />;
+  }
+  /// Render dashboard if map is not shown
+if (!showMap) {
+    return (
+      <UserDashboard
+        onPublicView={() => setShowMap(true)}
+        onReportPress={() => setShowReport(true)}
+      />
+    );
+  }
   return (
     <GestureHandlerRootView style={styles.container}>
       <MapView
@@ -128,11 +144,11 @@ export default function HomeScreen() {
         onPress={() => setSelectedIncident(null)}
       >
         {validReports.map((report) => (
-          <IncidentMarker 
-             key={report.id} 
-             incident={report} 
+          <IncidentMarker
+             key={report.id}
+             incident={report}
              // 👇 Passes the click handler correctly now
-             onPress={() => handleIncidentPress(report)} 
+             onPress={() => handleIncidentPress(report)}
           />
         ))}
       </MapView>
@@ -152,9 +168,9 @@ export default function HomeScreen() {
 
       {/* 👇 1. SHOW CALLOUT (If an incident is selected) */}
       {selectedIncident && (
-        <IncidentCallout 
-          incident={selectedIncident} 
-          onClose={() => setSelectedIncident(null)} 
+        <IncidentCallout
+          incident={selectedIncident}
+          onClose={() => setSelectedIncident(null)}
         />
       )}
 
