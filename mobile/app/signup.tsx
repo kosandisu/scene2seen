@@ -70,10 +70,10 @@ export default function SignUpScreen() {
 
                 <View style={styles.formContainer}>
                     <View style={styles.inputWrapper}>
-                        <Ionicons name="person-outline" size={20} color="rgba(255,255,255,0.8)" style={styles.inputIcon} />
+                        <Ionicons name="person-outline" size={20} color="#6B7280" style={styles.inputIcon} />
                         <TextInput
                             placeholder="Full Name"
-                            placeholderTextColor="rgba(255,255,255,0.6)"
+                            placeholderTextColor="#9CA3AF"
                             style={styles.input}
                             value={name}
                             onChangeText={setName}
@@ -82,10 +82,10 @@ export default function SignUpScreen() {
 
                     {/* Email Field */}
                     <View style={styles.inputWrapper}>
-                        <Ionicons name="mail-outline" size={20} color="rgba(255,255,255,0.8)" style={styles.inputIcon} />
+                        <Ionicons name="mail-outline" size={20} color="#6B7280" style={styles.inputIcon} />
                         <TextInput
                             placeholder="Email"
-                            placeholderTextColor="rgba(255,255,255,0.6)"
+                            placeholderTextColor="#9CA3AF"
                             style={styles.input}
                             value={email}
                             onChangeText={setEmail}
@@ -96,10 +96,10 @@ export default function SignUpScreen() {
 
                     {/* Password Field */}
                     <View style={styles.inputWrapper}>
-                        <Ionicons name="lock-closed-outline" size={20} color="rgba(255,255,255,0.8)" style={styles.inputIcon} />
+                        <Ionicons name="lock-closed-outline" size={20} color="#6B7280" style={styles.inputIcon} />
                         <TextInput
                             placeholder="Password"
-                            placeholderTextColor="rgba(255,255,255,0.6)"
+                            placeholderTextColor="#9CA3AF"
                             style={styles.input}
                             value={password}
                             onChangeText={setPassword}
@@ -140,13 +140,16 @@ const styles = StyleSheet.create({
     inputWrapper: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+        backgroundColor: '#FFFFFF',
         borderRadius: 12,
         marginBottom: 16,
         paddingHorizontal: 14,
         height: 56,
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.2)',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2,
     },
     inputIcon: { marginRight: 10 },
     input: { flex: 1, color: '#FFFFFF', fontSize: 16, height: '100%' },
