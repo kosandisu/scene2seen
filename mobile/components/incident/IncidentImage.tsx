@@ -26,21 +26,7 @@ export function IncidentImage({ imageUrl, onPress }: IncidentImageProps) {
   // Default to 16:9 ratio (approx 1.77) to prevent layout jump
   const [aspectRatio, setAspectRatio] = useState(1.77); 
 
-  useEffect(() => {
-    if (!imageUrl) return;
-    Image.getSize(
-      imageUrl,
-      (width, height) => {
-        setAspectRatio(width / height);
-        setIsLoading(false);
-      },
-      (error) => {
-        console.error("Failed to get image size:", error);
-        setHasError(true);
-        setIsLoading(false);
-      }
-    );
-  }, [imageUrl]);
+  // Removed brittle Image.getSize effect
 
   if (!imageUrl) {
     return null;
@@ -79,7 +65,16 @@ export function IncidentImage({ imageUrl, onPress }: IncidentImageProps) {
       <Image
         source={{ uri: imageUrl }}
         style={[styles.image, { aspectRatio }]} 
-        resizeMode="contain" 
+        resizeMode="contain"
+        onLoad={(e) => {
+          const { width, height } = e.nativeEvent.source;
+          setAspectRatio(width / height);
+          setIsLoading(false);
+        }}
+        onError={() => {
+          setHasError(true);
+          setIsLoading(false);
+        }}
       />
     </ImageWrapper>
   );

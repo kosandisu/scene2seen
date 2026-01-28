@@ -1,3 +1,4 @@
+//user in app report form 
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView } from "react-native";
 import { Ionicons } from '@expo/vector-icons';
@@ -8,6 +9,7 @@ export default function IncidentForm({ onClose }: { onClose: () => void }) {
   const [snsLink, setSnsLink] = useState('');
   const [description, setDescription] = useState('');
 
+  //use the incident report types from telegram. 
   const types = ['🔥 Fire', '🚗 Accident', '🌊 Flood', '🏗️ Collapse', '❓ Other'];
   const severities = [
     { label: '🔴 High', value: 'high' },
@@ -15,9 +17,9 @@ export default function IncidentForm({ onClose }: { onClose: () => void }) {
     { label: '🟢 Low', value: 'low' }
   ];
 
+  {/**not in the center at all */}
   return (
     <View style={styles.container}>
-      {/* Header matching your Red Theme */}
       <View style={styles.header}>
         <TouchableOpacity onPress={onClose}>
           <Ionicons name="arrow-back" size={28} color="white" />
@@ -27,7 +29,6 @@ export default function IncidentForm({ onClose }: { onClose: () => void }) {
       </View>
 
       <ScrollView style={styles.form} contentContainerStyle={{ paddingBottom: 40 }}>
-        {/* 1. Incident Type (Buttons instead of typing) */}
         <Text style={styles.label}>1. Select Incident Type</Text>
         <View style={styles.typeGrid}>
           {types.map(t => (
