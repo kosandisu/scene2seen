@@ -1,12 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions } from "react-native";
 import { Ionicons } from '@expo/vector-icons';
-//import { auth } from "../../firebase";
+import { LinearGradient } from 'expo-linear-gradient';
+import { auth, db } from '../../firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { signOut } from 'firebase/auth';
+import { useRouter } from 'expo-router';
 
 export default function UserDashboard({ onPublicView, onReportPress }: { onPublicView: () => void, onReportPress: () => void }) {
-//const userName = auth.currentUser?.displayName || "User";
-const userName = "Guest User";
-const [currentSlide, setCurrentSlide] = useState(0);
+    const router = useRouter();
+    const [userName, setUserName] = useState<string>('Guest User');
+    const [currentSlide, setCurrentSlide] = useState(0);
+
+    useEffect(() => {
+        const fetchUserName = async () => {
+            const user = auth.currentUser;
+            if (user) {
+                // Try to get name from Firestore
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                if (userDoc.exists() && userDoc.data().name) {
+                    setUserName(userDoc.data().name);
+                } else if (user.displayName) {
+                    setUserName(user.displayName);
+                } else if (user.email) {
+                    setUserName(user.email.split('@')[0]);
+                }
+            }
+        };
+        fetchUserName();
+    }, []);
+
+    const handleLogout = async () => {
+        await signOut(auth);
+        router.replace('/login');
+    };
 
 const newsSlides = [
     "Emergency Alert: Heavy rainfall expected in Gyeonggi-do area.",
@@ -17,21 +44,26 @@ const newsSlides = [
 
 return (
     <View style={styles.mainContainer}>
-      {/* 1. Header with Red Background */}
-    <View style={styles.header}>
-        <View style={styles.headerTop}>
-        <Text style={styles.headerTitle}>Scene2Seen</Text>
-        <View style={styles.headerIcons}>
-            <TouchableOpacity>
-            <Ionicons name="notifications-outline" size={26} color="white" />
-            </TouchableOpacity>
-            <TouchableOpacity>
-            <Ionicons name="log-out-outline" size={26} color="white" />
-            </TouchableOpacity>
-        </View>
-        </View>
-        <Text style={styles.welcomeText}>Welcome, {userName}</Text>
-    </View>
+      {/* 1. Header with Gradient Background */}
+        <LinearGradient
+                colors={['#ff2d22ff', '#e4831cff']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.header}
+        >
+                <View style={styles.headerTop}>
+                    <Text style={styles.headerTitle}>Scene2Seen</Text>
+                    <View style={styles.headerIcons}>
+                        <TouchableOpacity>
+                            <Ionicons name="notifications-outline" size={26} color="white" />
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={handleLogout}>
+                            <Ionicons name="log-out-outline" size={26} color="white" />
+                        </TouchableOpacity>
+                    </View>
+                </View>
+                <Text style={styles.welcomeText}>Welcome, {userName}</Text>
+        </LinearGradient>
 
     <ScrollView style={styles.content}>
         {/* 2. News Slide (2.5:1 Ratio) */}
@@ -86,15 +118,14 @@ return (
 const styles = StyleSheet.create({
 mainContainer: { flex: 1, backgroundColor: '#F8F9FA' },
 header: {
-    backgroundColor: '#FF4444', // Red Theme
-    paddingTop: 50,
+    paddingTop: 64,
     paddingHorizontal: 20,
-    paddingBottom: 25,
+    paddingBottom: 20,
 },
-headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-headerTitle: { color: 'white', fontSize: 24, fontWeight: 'bold' },
-headerIcons: { flexDirection: 'row', gap: 15 },
-welcomeText: { color: 'white', opacity: 0.9, marginTop: 5, fontSize: 14 },
+headerTop: { alignItems: 'center', justifyContent: 'center', position: 'relative' },
+headerTitle: { color: 'white', fontSize: 24, fontWeight: 'bold', textAlign: 'center' },
+headerIcons: { position: 'absolute', right: 8, top: 12, flexDirection: 'row', gap: 15 },
+welcomeText: { color: 'white', opacity: 0.95, marginTop: 8, fontSize: 14, textAlign: 'center' },
 content: { padding: 20 },
 newsSection: { marginBottom: 25 },
 newsCard: { width: '100%', aspectRatio: 2.5 / 1.5, backgroundColor: '#333', borderRadius: 20, justifyContent: 'center', alignItems: 'center', padding: 20 },
