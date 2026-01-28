@@ -216,4 +216,29 @@ export const styles = StyleSheet.create({
             },
         }),
     },
+    appSourceCard: {
+        marginTop: 6,
+        backgroundColor: '#FFF7ED',
+        borderRadius: 8,
+        flexDirection: 'row',
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: '#FDBA74',
+    },
+    appSourceStrip: {
+        width: 4,
+        backgroundColor: '#FF6B35',
+    },
+    appSourceContent: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 12,
+        gap: 10,
+    },
+    appSourceText: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#C2410C',
+    },
 });

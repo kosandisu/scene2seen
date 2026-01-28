@@ -13,7 +13,7 @@ import {
   Linking,
 } from 'react-native';
 import { useState, useEffect } from 'react';
-import { useNavigation } from '@react-navigation/native'; 
+import { useNavigation } from '@react-navigation/native';
 import { styles } from '../styles/IncidentCallout.styles';
 import { GOOGLE_MAPS_API_KEY } from '../../constants/config';
 
@@ -31,7 +31,7 @@ interface IncidentCalloutProps {
 
 export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
   const { height: screenHeight } = useWindowDimensions();
-  const navigation = useNavigation<any>(); 
+  const navigation = useNavigation<any>();
 
   //location full -> landmark if exists st.
   const [displayLocation, setDisplayLocation] = useState(incident.location_name || 'unknown location');
@@ -58,13 +58,13 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
               'primary_school',
               'bank',
               'atm',
-              'convenience_store', 
+              'convenience_store',
               'store',
-              'hospital', 
-              'school', 
-              'government_office', 
-              'tourist_attraction', 
-              'restaurant', 
+              'hospital',
+              'school',
+              'government_office',
+              'tourist_attraction',
+              'restaurant',
               'transit_station',
               'church',
               'parking',
@@ -78,7 +78,7 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
               'bus_stop',
               'bus_station',
             ],
-            
+
             maxResultCount: 1,
             locationRestriction: {
               circle: {
@@ -94,7 +94,7 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
         });
 
         const data = await response.json();
-        //console.log("📍 Places API Response:", JSON.stringify(data, null, 2));
+
 
         if (data.places && data.places.length > 0) {
           setDisplayLocation(data.places[0].displayName.text);
@@ -108,10 +108,10 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
 
     fetchLandmarkName();
   }, [incident.reporter_lat, incident.reporter_lng]);
-  
+
   const formattedTimestamp = formatTimestamp(incident.created_at);
   const criticalLevel = incident.priority;
-  
+
   // Generate incident ID based on created_at timestamp for sequential ordering
   const getIncidentNumber = () => {
     if (incident.created_at instanceof Date) {
@@ -121,7 +121,7 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
     }
     return Math.floor(Math.random() * 1000);
   };
-  
+
   const incidentId = `INC-${String(getIncidentNumber()).padStart(3, '0')}`;
 
   //using the user report from telegram
@@ -150,7 +150,7 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
   // Helper to handle source click
   const handleSourcePress = () => {
     if (incident.source_url) {
-      navigation.navigate('SourceWeb', { 
+      navigation.navigate('SourceWeb', {
         url: incident.source_url,
         title: incident.og_title || 'Incident Source'
       });
@@ -160,21 +160,21 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
   return (
     <View style={styles.absoluteContainer} pointerEvents="box-none">
       <Pressable style={styles.backdrop} onPress={handleClose} />
-      
-      <View 
+
+      <View
         style={[styles.container, { maxHeight: screenHeight * 0.75 }]}
         accessible
         accessibilityLabel="Incident details popup"
       >
-        <ScrollView 
+        <ScrollView
           style={styles.scrollView}
           showsVerticalScrollIndicator={false}
           nestedScrollEnabled
         >
-          {/* Header Section with ID and Critical Level */}
+          
           <View style={styles.header}>
             <View style={styles.headerLeft}>
-              <Text 
+              <Text
                 style={styles.title}
                 accessibilityRole="header"
               >
@@ -183,20 +183,20 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
               <Text style={styles.incidentId}>{incidentId}</Text>
             </View>
             <View style={styles.badgeContainer}>
-              <View 
+              <View
                 style={[styles.criticalBadge, { backgroundColor: criticalStyle.backgroundColor }]}
                 accessibilityLabel={`Critical level: ${criticalStyle.text}`}
               >
                 <Text style={styles.criticalBadgeText}>{criticalStyle.text}</Text>
               </View>
-              
+
               <Pressable onPress={handleClose} hitSlop={8}>
                 <Text style={styles.closeButton}>✕</Text>
               </Pressable>
             </View>
           </View>
 
-          <View style={styles.detailsGrid}> 
+          <View style={styles.detailsGrid}>
             <View style={styles.gridRow}>
               {/* Type */}
               <View style={styles.detailItem}>
@@ -217,14 +217,13 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
                   <Ionicons name="person-outline" size={16} color="#6B7280" />
                 </View>
                 <View style={styles.detailContent}>
-                  <Text style={styles.detailLabel}>Reported By</Text>          
-                  <Text 
+                  <Text style={styles.detailLabel}>Reported By</Text>
+                  <Text
                     style={styles.detailValue}
                     numberOfLines={1}
-                    
-                    accessibilityLabel={`Reported by: ${incident.og_title || 'Anonymous'}`}
+                    accessibilityLabel={`Reported by: ${incident.og_title || incident.reporter_name || 'Anonymous'}`}
                   >
-                    {incident.og_title || 'Anonymous'}
+                    {incident.og_title || incident.reporter_name || 'Anonymous'}
                   </Text>
                 </View>
               </View>
@@ -237,7 +236,7 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
                 </View>
                 <View style={styles.detailContent}>
                   <Text style={styles.detailLabel}>Reported</Text>
-                  <Text 
+                  <Text
                     style={styles.detailValue}
                     accessibilityLabel={`Reported ${formattedTimestamp}`}
                   >
@@ -254,10 +253,10 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
                 </View>
                 <View style={styles.detailContent}>
                   <Text style={styles.detailLabel}>Location</Text>
-                  
-                  <Text 
+
+                  <Text
                     style={[
-                      styles.detailValue, 
+                      styles.detailValue,
                       { color: isFetchingPlace ? '#9CA3AF' : '#1F2937' } // Gray while loading
                     ]}
                     numberOfLines={3}
@@ -267,10 +266,10 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
                     {(!isFetchingPlace && displayLocation !== incident.location_name) ? "📍 " : ""}
                     {displayLocation}
                   </Text>
+
                   
-                  {/* Optional: Show original address as subtext if we found a Landmark */}
                   {(!isFetchingPlace && displayLocation !== incident.location_name) && (
-                    <Text style={{fontSize: 11, color: '#9CA3AF', marginTop: 2}} numberOfLines={1}>
+                    <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }} numberOfLines={1}>
                       {incident.location_name}
                     </Text>
                   )}
@@ -278,9 +277,9 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
                 </View>
               </View>
             </View>
-            
 
-            {/* Source context htr pee embedded preview */}
+
+            {/* link if from sns app or if report from app then app */}
             <View style={styles.gridRow}>
               <View style={[styles.detailItem, styles.fullWidth]}>
                 <View style={styles.detailIcon}>
@@ -288,9 +287,10 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
                 </View>
                 <View style={styles.detailContent}>
                   <Text style={styles.detailLabel}>Source Context</Text>
-                  
+
                   {incident.og_title ? (
-                    <Pressable 
+                    // Telegram report with OG data
+                    <Pressable
                       style={styles.linkCard}
                       onPress={handleSourcePress}
                     >
@@ -299,13 +299,13 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
                         <Text style={styles.linkTitle} numberOfLines={2}>
                           {incident.og_title}
                         </Text>
-                        
+
                         {incident.og_description && (
                           <Text style={styles.linkDesc} numberOfLines={2}>
                             {incident.og_description}
                           </Text>
                         )}
-                        
+
                         <View style={styles.linkFooter}>
                           <Text style={styles.linkDomain}>
                             {incident.og_site || 'See Original Post'} ↗
@@ -314,14 +314,28 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
                       </View>
                       <View style={styles.linkCardStrip} />
                     </Pressable>
-                  ) : (
-                    <Text 
+                  ) : incident.source_platform === 'app' ? (
+                    
+                    <View style={styles.appSourceCard}>
+                      <View style={styles.appSourceStrip} />
+                      <View style={styles.appSourceContent}>
+                        <Ionicons name="phone-portrait-outline" size={18} color="#FF6B35" />
+                        <Text style={styles.appSourceText}>Reported via Scene2Seen App</Text>
+                      </View>
+                      <View style={styles.appSourceStrip} />
+                    </View>
+                  ) : incident.source_url ? (
+                    // Has URL but no OG data
+                    <Text
                       style={[styles.detailValue, styles.urlText]}
                       numberOfLines={1}
                       onPress={handleSourcePress}
                     >
-                      {incident.source_url || 'N/A'}
+                      {incident.source_url}
                     </Text>
+                  ) : (
+                    // Fallback
+                    <Text style={styles.detailValue}>Direct Report</Text>
                   )}
                 </View>
               </View>
@@ -331,7 +345,7 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
           {/* Description */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Description</Text>
-            <Text 
+            <Text
               style={styles.description}
               accessibilityLabel={`Description: ${incident.text && !incident.text.startsWith('http') ? incident.text : 'N/A'}`}
             >
