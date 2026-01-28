@@ -8,7 +8,9 @@ export default function LoginScreen() {
     router.replace('/(tabs)'); 
   };
 
+  {/** logo + login page  */}
   return (
+    
     <View style={styles.container}>
       <View style={styles.headerArea}>
         <View style={styles.logoPlaceholder} />
@@ -16,6 +18,7 @@ export default function LoginScreen() {
         <Text style={styles.subtitle}>Disaster Response Network</Text>
       </View>
 
+    
       <View style={styles.actionArea}>
         <TouchableOpacity 
           style={styles.googleButton} 
