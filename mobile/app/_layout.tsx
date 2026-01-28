@@ -19,7 +19,7 @@ export default function RootLayout() {
         <Stack.Screen name="login" />
         <Stack.Screen name="signup" />
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="map" />
+        <Stack.Screen name="map/index" />
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
         <Stack.Screen name="SourceWeb" options={{ presentation: 'card' }} />
       </Stack>
