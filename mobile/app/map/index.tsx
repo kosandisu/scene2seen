@@ -20,11 +20,13 @@ const DEFAULT_REGION = {
 export default function MapScreen() {
   const router = useRouter();
   
-  const { source } = useLocalSearchParams();
+  const { source, incidentId } = useLocalSearchParams();
     
   const isPublicView = source === 'public';
+  const targetIncidentId = typeof incidentId === 'string' ? incidentId : undefined;
 
   const mapRef = useRef<MapView>(null);
+  const hasHandledInitialIncident = useRef(false);
   const [reports, setReports] = useState<IncidentReport[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedIncident, setSelectedIncident] = useState<IncidentReport | null>(null);
@@ -47,6 +49,17 @@ export default function MapScreen() {
   }, []);
 
   const validReports = useMemo(() => reports.filter(r => r.reporter_lat && r.reporter_lng), [reports]);
+
+  // Auto-focus incident from notification (only once)
+  useEffect(() => {
+    if (targetIncidentId && validReports.length > 0 && !hasHandledInitialIncident.current) {
+      const incident = validReports.find(r => r.id === targetIncidentId);
+      if (incident) {
+        hasHandledInitialIncident.current = true;
+        handleIncidentPress(incident);
+      }
+    }
+  }, [targetIncidentId, validReports, handleIncidentPress]);
 
   const handleIncidentPress = useCallback((incident: IncidentReport) => {
     mapRef.current?.animateToRegion({
