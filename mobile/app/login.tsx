@@ -10,7 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { auth, db } from '../firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -27,17 +27,17 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      
-      const userQuery = query(collection(db, 'user'), where('email', '==', email.toLowerCase()));
-      const querySnapshot = await getDocs(userQuery);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
 
-      let role = 'user'; 
+      const userDocRef = doc(db, 'users', user.uid);
+      const userDocSnap = await getDoc(userDocRef);
 
-      if (!querySnapshot.empty) {
-        const userDoc = querySnapshot.docs[0];
-        role = userDoc.data().role || 'user';
-      } 
+      let role = 'user';
+
+      if (userDocSnap.exists()) {
+        role = userDocSnap.data().role || 'user';
+      }
 
       if (role === 'emergency') {
         router.replace('/map');
@@ -53,6 +53,7 @@ export default function LoginScreen() {
     }
   };
 
+  //tan 
   const handleGoogleLogin = () => {
     router.replace('/(tabs)');
   };
@@ -167,7 +168,7 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF', 
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     marginBottom: 16,
     paddingHorizontal: 14,
@@ -180,11 +181,11 @@ const styles = StyleSheet.create({
   },
   inputIcon: {
     marginRight: 10,
-    color: '#6B7280', 
+    color: '#6B7280',
   },
   input: {
     flex: 1,
-    color: '#de190eff', 
+    color: '#de190eff',
     fontSize: 16,
     height: '100%',
   },
@@ -209,7 +210,7 @@ const styles = StyleSheet.create({
   bottomArea: {
     width: '100%',
     alignItems: 'center',
-    marginTop: 30, 
+    marginTop: 30,
   },
   dividerContainer: {
     flexDirection: 'row',
@@ -229,9 +230,9 @@ const styles = StyleSheet.create({
   },
   googleButton: {
     backgroundColor: '#FFFFFF',
-    width: '60%', 
+    width: '60%',
     height: 50,
-    borderRadius: 8, 
+    borderRadius: 8,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

@@ -35,13 +35,14 @@ export default function SignUpScreen() {
             await setDoc(doc(db, 'users', user.uid), {
                 name: name,
                 email: email,
-                role: 'user',       
+                role: 'user',
                 approved: true,
                 createdAt: new Date().toISOString(),
             });
 
+            //sign up -> user -> user interface
             Alert.alert("Welcome!", "Your account has been created.", [
-                { text: "OK", onPress: () => router.replace('/(tabs)') } // Go to User Dashboard
+                { text: "OK", onPress: () => router.replace('/(tabs)') }
             ]);
 
         } catch (error: any) {
@@ -152,7 +153,7 @@ const styles = StyleSheet.create({
         elevation: 2,
     },
     inputIcon: { marginRight: 10 },
-    input: { flex: 1, color: '#FFFFFF', fontSize: 16, height: '100%' },
+    input: { flex: 1, color: '#de190eff', fontSize: 16, height: '100%' },
     signupButton: {
         backgroundColor: '#FFFFFF',
         height: 56,
