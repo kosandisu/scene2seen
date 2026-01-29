@@ -396,12 +396,12 @@ export function IncidentDashboard({
             </View>
           </View>
           <View style={styles.groupByRow}>
-            <Text style={styles.groupByLabel}>Group by</Text>
+            <Text style={styles.groupByLabel}>Sort by</Text>
             <View style={styles.groupToggleContainer}>
               {([
                 { key: 'location', label: 'Location' },
                 { key: 'type', label: 'Type' },
-                { key: 'priority', label: 'Priority' },
+                { key: 'priority', label: 'Severity' },
                 { key: 'date', label: 'Date' },
               ] as const).map((option) => {
                 const isActive = groupBy === option.key;
@@ -411,7 +411,7 @@ export function IncidentDashboard({
                     style={[styles.groupToggleButton, isActive && styles.groupToggleButtonActive]}
                     onPress={() => setGroupBy(option.key)}
                     accessibilityRole="button"
-                    accessibilityLabel={`Group by ${option.label}`}
+                    accessibilityLabel={`Sort by ${option.label}`}
                   >
                     <Text
                       style={[
