@@ -272,7 +272,6 @@ bot.on("message", async (msg) => {
       if (data.status === "OK" && data.results.length > 0) {
         const fullAddress = data.results[0].formatted_address;
 
-        // Cleanup: Remove "South Korea" and Zip Codes (5 digits) to make it shorter, include???
         addressString = fullAddress.replace(", South Korea", "").replace(/\d{5}/, "").trim();
 
         if (addressString.endsWith(",")) addressString = addressString.slice(0, -1);
