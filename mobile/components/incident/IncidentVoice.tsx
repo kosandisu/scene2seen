@@ -74,8 +74,8 @@ const Waveform = ({
                         style={{
                             width: 4,
                             height: `${heightPercent}%`,
-                            // Blue (#3B82F6) for listened/active, Light Grey for unlistened
-                            backgroundColor: isActive ? '#3B82F6' : '#D1D5DB',
+                            // Blue (#2563EB) for listened/active, Light Grey for unlistened
+                            backgroundColor: isActive ? '#2563EB' : '#D1D5DB',
                             borderRadius: 2,
                         }}
                     />
@@ -167,7 +167,7 @@ export const IncidentVoice = ({ url }: IncidentVoiceProps) => {
                 justifyContent: 'space-between'
             }
         ]}>
-            <View style={{ width: 4, height: '100%', backgroundColor: '#3B82F6' }} />
+            <View style={{ width: 4, height: '100%', backgroundColor: '#2563EB' }} />
 
             <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 12 }}>
                 <Pressable
@@ -175,7 +175,7 @@ export const IncidentVoice = ({ url }: IncidentVoiceProps) => {
                     style={[
                         styles.playButtonCircle,
                         {
-                            backgroundColor: '#3B82F6', // Blue Circle
+                            backgroundColor: '#2563EB', // Blue Circle
                             marginRight: 4
                         }
                     ]}
@@ -199,13 +199,13 @@ export const IncidentVoice = ({ url }: IncidentVoiceProps) => {
 
                 <Text style={[
                     styles.voiceTimerText,
-                    { color: '#3B82F6', marginLeft: 8 }
+                    { color: '#2563EB', marginLeft: 8 }
                 ]}>
                     {getDisplayTime()}
                 </Text>
             </View>
 
-            <View style={{ width: 4, height: '100%', backgroundColor: '#3B82F6' }} />
+            <View style={{ width: 4, height: '100%', backgroundColor: '#2563EB' }} />
         </View>
     );
 };
