@@ -26,7 +26,7 @@ import { Ionicons } from '@expo/vector-icons';
 import type { IncidentReport, PriorityLevel, IncidentType } from '../../types/incident';
 import { IncidentListItem } from './IncidentListItem';
 import { PRIORITY_CONFIG } from '../../constants/priority';
-import { INCIDENT_TYPE_LABELS } from '../../types/incident';
+import  {INCIDENT_TYPE_LABELS}  from '../../types/incident';
 import { TouchableOpacity, SectionList } from 'react-native';
 
 interface IncidentDashboardProps {
