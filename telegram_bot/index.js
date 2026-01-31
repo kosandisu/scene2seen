@@ -5,6 +5,13 @@ import { getFirestore, collection, addDoc } from "firebase/firestore";
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import fetch from "node-fetch";
 import * as cheerio from "cheerio";
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
+import ffmpeg from 'fluent-ffmpeg';
+import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
+
+ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
 if (!BOT_TOKEN) {
@@ -104,13 +111,54 @@ async function fetchOgMetadata(url) {
   }
 }
 
-async function uploadTelegramFileToFirebase(fileId, path) {
+async function uploadTelegramFileToFirebase(fileId, filePathInBucket) {
   try {
     const fileLink = await bot.getFileLink(fileId);
     const res = await fetch(fileLink);
     const buffer = await res.arrayBuffer();
-    const fileRef = storageRef(storage, path);
 
+    // Check if transcoding is needed (TG voice is .oga or .ogg)
+    if (filePathInBucket.endsWith('.oga') || filePathInBucket.endsWith('.ogg')) {
+      console.log(`Transcoding voice memo: ${filePathInBucket} -> mp3`);
+      const tempId = Math.random().toString(36).substring(7);
+      const tempInput = path.join(os.tmpdir(), `input_${tempId}.oga`);
+      const tempOutput = path.join(os.tmpdir(), `output_${tempId}.mp3`);
+
+      // Write temp input file
+      fs.writeFileSync(tempInput, Buffer.from(buffer));
+
+      // Transcode
+      await new Promise((resolve, reject) => {
+        ffmpeg(tempInput)
+          .toFormat('mp3')
+          .on('end', () => {
+            console.log('Transcoding finished');
+            resolve();
+          })
+          .on('error', (err) => {
+            console.error('ffmpeg error:', err);
+            reject(err);
+          })
+          .save(tempOutput);
+      });
+
+      // Read output file
+      const mp3Buffer = fs.readFileSync(tempOutput);
+
+      // Cleanup
+      try { fs.unlinkSync(tempInput); fs.unlinkSync(tempOutput); } catch (e) { }
+
+      // Update path (replace extension)
+      const mp3Path = filePathInBucket.replace(/\.oga$|\.ogg$/, '.mp3');
+      const fileRef = storageRef(storage, mp3Path);
+
+      // Upload MP3 with correct metadata
+      await uploadBytes(fileRef, new Uint8Array(mp3Buffer), { contentType: 'audio/mpeg' });
+      return await getDownloadURL(fileRef);
+    }
+
+    // Normal upload for images etc
+    const fileRef = storageRef(storage, filePathInBucket);
     await uploadBytes(fileRef, new Uint8Array(buffer)); // Firebase v9 expects Uint8Array or Blob
     const downloadUrl = await getDownloadURL(fileRef);
     return downloadUrl;

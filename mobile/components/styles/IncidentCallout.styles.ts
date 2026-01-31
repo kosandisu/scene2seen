@@ -279,4 +279,44 @@ export const styles = StyleSheet.create({
     twitterText: {
         color: '#888484ff',
     },
+    voiceButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 12,
+        backgroundColor: '#F3F4F6',
+        borderRadius: 8,
+        marginTop: 10,
+        gap: 12,
+        zIndex: 99,
+        position: 'relative',
+    },
+    voicePlayerBubble: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#3B82F6', // Blue
+        borderRadius: 24,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        marginTop: 10,
+        zIndex: 99,
+    },
+    playButtonCircle: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: '#FFFFFF',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
+    },
+    voiceSliderContainer: {
+        flex: 1,
+    },
+    voiceTimerText: {
+        color: '#DBEAFE', // Light blue/white text
+        fontSize: 11,
+        fontWeight: '500',
+        marginTop: -2,
+        marginLeft: 4,
+    },
 });

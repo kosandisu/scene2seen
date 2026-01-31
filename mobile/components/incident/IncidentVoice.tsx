@@ -10,57 +10,72 @@ interface IncidentVoiceProps {
 
 const Waveform = ({
     progress,
-    onSeek
+    onSeek,
+    onPanStateChange
 }: {
     progress: number;
     onSeek: (percent: number) => void;
+    onPanStateChange: (isActive: boolean) => void;
 }) => {
-    // 1. Generate random "voice-like" bar heights once
     const bars = useMemo(() => {
-        return Array.from({ length: 40 }).map(() =>
-            Math.max(30, Math.random() * 100) // Minimum 30% height, max 100%
+        return Array.from({ length: 35 }).map(() =>
+            Math.max(30, Math.random() * 100)
         );
     }, []);
 
     const [width, setWidth] = useState(0);
 
-    // 2. Handle touch/drag to seek
-    const handleTouch = (evt: GestureResponderEvent) => {
+    const calculateProgress = (evt: GestureResponderEvent) => {
         if (width > 0) {
             const locX = evt.nativeEvent.locationX;
-            const percent = Math.max(0, Math.min(1, locX / width));
-            onSeek(percent);
+            return Math.max(0, Math.min(1, locX / width));
         }
+        return 0;
+    };
+
+    const handleTouchStart = (evt: GestureResponderEvent) => {
+        onPanStateChange(true);
+        const percent = calculateProgress(evt);
+        onSeek(percent);
+    };
+
+    const handleTouchMove = (evt: GestureResponderEvent) => {
+        const percent = calculateProgress(evt);
+        onSeek(percent);
+    };
+
+    const handleTouchEnd = () => {
+        onPanStateChange(false);
     };
 
     return (
         <View
             style={{
                 flex: 1,
-                height: 30, // Fixed height for the bars container
+                height: 45,
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                marginHorizontal: 8
+                marginHorizontal: 4
             }}
             onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
-            // Simple touch handler (for tap)
-            onTouchStart={handleTouch}
-            // Simple drag handler (for slide)
-            onTouchMove={handleTouch}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            onTouchCancel={handleTouchEnd}
         >
             {bars.map((heightPercent, index) => {
                 const barProgress = index / bars.length;
-                // If current bar is "before" the progress point, it's active
                 const isActive = barProgress < progress;
 
                 return (
                     <View
                         key={index}
                         style={{
-                            width: 3, // Fixed width bars
+                            width: 4,
                             height: `${heightPercent}%`,
-                            backgroundColor: isActive ? '#3B82F6' : '#D1D5DB', // Blue vs Gray
+                            // Blue (#3B82F6) for listened/active, Light Grey for unlistened
+                            backgroundColor: isActive ? '#3B82F6' : '#D1D5DB',
                             borderRadius: 2,
                         }}
                     />
@@ -94,9 +109,8 @@ export const IncidentVoice = ({ url }: IncidentVoiceProps) => {
                     setIsPlaying(false);
                     setPosition(player.duration);
                 }
-            }, 100); // 100ms for smoother visual updates
+            }, 100);
         } else {
-            // Even if paused, update duration if we have it
             if (player.duration > 0 && duration === 0) {
                 setDuration(player.duration);
             }
@@ -124,10 +138,6 @@ export const IncidentVoice = ({ url }: IncidentVoiceProps) => {
             const newTime = percent * duration;
             setPosition(newTime);
             player.seekTo(newTime);
-
-            // If we seek while paused, stay paused. If playing, keep playing.
-            // But we might want to ensure 'isDragging' logic doesn't block the update.
-            // Since this is a direct seek, we update position immediately.
         }
     };
 
@@ -135,32 +145,67 @@ export const IncidentVoice = ({ url }: IncidentVoiceProps) => {
         if (!seconds || isNaN(seconds)) return '00:00';
         const m = Math.floor(seconds / 60);
         const s = Math.floor(seconds % 60);
-        return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
+        return `${m}:${s < 10 ? '0' : ''}${s}`;
+    };
+
+    const getDisplayTime = () => {
+        if (duration === 0) return '0:00';
+        if (position >= duration) return '0:00';
+        const remaining = Math.max(0, duration - position);
+        return formatTime(remaining);
     };
 
     return (
-        <View style={styles.voicePlayerBubble}>
-            <Pressable onPress={togglePlayback} style={styles.playButtonCircle}>
-                <Ionicons
-                    name={isPlaying ? "pause" : "play"}
-                    size={20}
-                    color="#3B82F6"
-                    style={{ marginLeft: isPlaying ? 0 : 2 }}
-                />
-            </Pressable>
+        <View style={[
+            styles.voicePlayerBubble,
+            {
+                backgroundColor: '#F3F4F6',
+                borderRadius: 8,
+                paddingHorizontal: 0,
+                paddingVertical: 0,
+                overflow: 'hidden',
+                justifyContent: 'space-between'
+            }
+        ]}>
+            <View style={{ width: 4, height: '100%', backgroundColor: '#3B82F6' }} />
 
-            <View style={{ flex: 1, paddingLeft: 8 }}>
+            <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 12 }}>
+                <Pressable
+                    onPress={togglePlayback}
+                    style={[
+                        styles.playButtonCircle,
+                        {
+                            backgroundColor: '#3B82F6', // Blue Circle
+                            marginRight: 4
+                        }
+                    ]}
+                >
+                    <Ionicons
+                        name={isPlaying ? "pause" : "play"}
+                        size={20}
+                        color="#FFFFFF"
+                        style={{ marginLeft: isPlaying ? 0 : 2 }}
+                    />
+                </Pressable>
+
                 {/* Waveform Visualization */}
-                <Waveform
-                    progress={duration > 0 ? position / duration : 0}
-                    onSeek={handleSeek}
-                />
-
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
-                    <Text style={styles.voiceTimerText}>{formatTime(position)}</Text>
-                    <Text style={styles.voiceTimerText}>{formatTime(duration)}</Text>
+                <View style={{ flex: 1, marginHorizontal: 0 }}>
+                    <Waveform
+                        progress={duration > 0 ? position / duration : 0}
+                        onSeek={handleSeek}
+                        onPanStateChange={setIsDragging}
+                    />
                 </View>
+
+                <Text style={[
+                    styles.voiceTimerText,
+                    { color: '#3B82F6', marginLeft: 8 }
+                ]}>
+                    {getDisplayTime()}
+                </Text>
             </View>
+
+            <View style={{ width: 4, height: '100%', backgroundColor: '#3B82F6' }} />
         </View>
     );
 };

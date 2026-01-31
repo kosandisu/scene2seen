@@ -22,6 +22,7 @@ import type { IncidentReport } from '../../types/incident';
 import { INCIDENT_TYPE_LABELS } from '../../types/incident';
 import { formatTimestamp } from '../../utils/date';
 import { IncidentImage } from './IncidentImage';
+import { IncidentVoice } from './IncidentVoice';
 import { DirectionsButton } from './DirectionsButton';
 
 interface IncidentCalloutProps {
@@ -363,13 +364,22 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
             </Text>
           </View>
 
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Ionicons name="image-outline" size={16} color="#6B7280" />
-              <Text style={styles.sectionLabel}>Attached Media</Text>
+          {(incident.evidence_image_url || incident.og_image || incident.evidence_voice_url) && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Ionicons name="image-outline" size={16} color="#6B7280" />
+                <Text style={styles.sectionLabel}>Attached Media</Text>
+              </View>
+
+              {/* Priority: Evidence Image > OG Image */}
+              <IncidentImage imageUrl={incident.evidence_image_url || incident.og_image} />
+
+              {/* Voice Memo Player */}
+              {incident.evidence_voice_url && (
+                <IncidentVoice url={incident.evidence_voice_url} />
+              )}
             </View>
-            <IncidentImage imageUrl={incident.og_image} />
-          </View>
+          )}
 
           {/**need to add conditional stuff to voice memos stuff */}
           {/* currently gets located to google maps in the browser */}
