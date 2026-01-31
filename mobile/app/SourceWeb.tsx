@@ -1,11 +1,11 @@
 import React, { useLayoutEffect, useRef, useState } from 'react';
-import { 
-  StyleSheet, 
-  View, 
-  ActivityIndicator, 
-  TouchableOpacity, 
+import {
+  StyleSheet,
+  View,
+  ActivityIndicator,
+  TouchableOpacity,
   Linking,
-  
+
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { useRoute, useNavigation } from '@react-navigation/native';
@@ -25,7 +25,8 @@ export default function SourceWebScreen() {
       title: title || 'Source Content',
       headerTitleAlign: 'center',
       headerTitleStyle: { fontSize: 16 },
-      headerBackTitleVisible: false, 
+      headerBackTitleVisible: false,
+      headerBackTitle: '', // Force empty back title on iOS 
     });
   }, [navigation, title]);
 
@@ -96,31 +97,31 @@ export default function SourceWebScreen() {
       {/* Bottom Navigation Bar */}
       <SafeAreaView style={styles.bottomBar} edges={['bottom']}>
         <View style={styles.toolbar}>
-          <TouchableOpacity 
-            onPress={() => webViewRef.current?.goBack()} 
+          <TouchableOpacity
+            onPress={() => webViewRef.current?.goBack()}
             disabled={!navState.canGoBack}
             style={styles.toolbarButton}
           >
             <Ionicons name="chevron-back" size={24} color={navState.canGoBack ? "#3B82F6" : "#D1D5DB"} />
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            onPress={() => webViewRef.current?.goForward()} 
+          <TouchableOpacity
+            onPress={() => webViewRef.current?.goForward()}
             disabled={!navState.canGoForward}
             style={styles.toolbarButton}
           >
             <Ionicons name="chevron-forward" size={24} color={navState.canGoForward ? "#3B82F6" : "#D1D5DB"} />
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            onPress={() => webViewRef.current?.reload()} 
+          <TouchableOpacity
+            onPress={() => webViewRef.current?.reload()}
             style={styles.toolbarButton}
           >
             <Ionicons name="refresh" size={24} color="#3B82F6" />
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            onPress={openExternal} 
+          <TouchableOpacity
+            onPress={openExternal}
             style={styles.toolbarButton}
           >
             <Ionicons name="globe-outline" size={24} color="#3B82F6" />
