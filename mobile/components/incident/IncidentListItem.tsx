@@ -41,9 +41,9 @@ export function IncidentListItem({ incident, onPress }: IncidentListItemProps) {
 
       {/* Thumbnail */}
       <View style={styles.thumbnailContainer}>
-        {incident.og_image ? (
+        {incident.evidence_image_url || incident.og_image ? (
           <Image
-            source={{ uri: incident.og_image }}
+            source={{ uri: incident.evidence_image_url || incident.og_image || undefined }}
             style={styles.thumbnail}
             resizeMode="cover"
           />
@@ -74,7 +74,7 @@ export function IncidentListItem({ incident, onPress }: IncidentListItemProps) {
             <Ionicons name="time-outline" size={12} color="#9CA3AF" />
             <Text style={styles.metaText}>{formatTimestamp(incident.created_at)}</Text>
           </View>
-          
+
           {incident.reporter_name && (
             <View style={styles.metaItem}>
               <Ionicons name="person-outline" size={12} color="#9CA3AF" />
