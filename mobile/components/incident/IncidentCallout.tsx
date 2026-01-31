@@ -288,16 +288,20 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
                 <View style={styles.detailContent}>
                   <Text style={styles.detailLabel}>Source Context</Text>
 
-                  {incident.og_title ? (
-                    // Telegram report with OG data
+                  {incident.source_url ? (
+                    // Link Card for ANY global URL (OG data or just raw link)
                     <Pressable
                       style={styles.linkCard}
                       onPress={handleSourcePress}
                     >
-                      <View style={styles.linkCardStrip} />
+                      <View style={[
+                        styles.linkCardStrip,
+                        incident.source_url?.includes('facebook.com') && styles.facebookStrip,
+                        (incident.source_url?.includes('x.com') || incident.source_url?.includes('twitter.com')) && styles.twitterStrip
+                      ]} />
                       <View style={styles.linkCardContent}>
                         <Text style={styles.linkTitle} numberOfLines={2}>
-                          {incident.og_title}
+                          {incident.og_title || 'Linked Content'}
                         </Text>
 
                         {incident.og_description && (
@@ -307,12 +311,20 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
                         )}
 
                         <View style={styles.linkFooter}>
-                          <Text style={styles.linkDomain}>
+                          <Text style={[
+                            styles.linkDomain,
+                            (incident.source_url?.includes('x.com') || incident.source_url?.includes('twitter.com')) && styles.twitterText
+                          ]}>
                             {incident.og_site || 'See Original Post'} ↗
                           </Text>
                         </View>
                       </View>
-                      <View style={styles.linkCardStrip} />
+
+                      <View style={[
+                        styles.linkCardStrip,
+                        incident.source_url?.includes('facebook.com') && styles.facebookStrip,
+                        (incident.source_url?.includes('x.com') || incident.source_url?.includes('twitter.com')) && styles.twitterStrip
+                      ]} />
                     </Pressable>
                   ) : incident.source_platform === 'app' ? (
 
@@ -324,18 +336,16 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
                       </View>
                       <View style={styles.appSourceStrip} />
                     </View>
-                  ) : incident.source_url ? (
-                    // Has URL but no OG data
-                    <Text
-                      style={[styles.detailValue, styles.urlText]}
-                      numberOfLines={1}
-                      onPress={handleSourcePress}
-                    >
-                      {incident.source_url}
-                    </Text>
                   ) : (
-                    // Fallback
-                    <Text style={styles.detailValue}>Direct Report</Text>
+                    // Telegram report with NO link (Just voice/image)
+                    <View style={styles.telegramBackground}>
+                      <View style={styles.telegramStrip} />
+                      <View style={styles.appSourceContent}>
+                        <Ionicons name="navigate-circle-outline" size={18} color="#0088cc" />
+                        <Text style={styles.telegramText}>Reported via Telegram App</Text>
+                      </View>
+                      <View style={styles.telegramStrip} />
+                    </View>
                   )}
                 </View>
               </View>
@@ -369,7 +379,7 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
             locationName={incident.location_name}
           />
         </ScrollView>
-      </View>
-    </View>
+      </View >
+    </View >
   );
 }

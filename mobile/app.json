@@ -52,7 +52,8 @@
         {
           "locationAlwaysAndWhenInUsePermission": "This app needs access to your location to provide directions to incident locations."
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,

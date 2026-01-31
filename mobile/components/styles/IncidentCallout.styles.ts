@@ -241,4 +241,42 @@ export const styles = StyleSheet.create({
         fontWeight: '600',
         color: '#C2410C',
     },
+    telegramStrip: {
+        width: 4,
+        backgroundColor: '#0088cc', // Telegram Blue
+    },
+    telegramBackground: {
+        marginTop: 6,
+        backgroundColor: '#F0F9FF', // Light blue tint
+        borderRadius: 8,
+        flexDirection: 'row',
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: '#BAE6FD',
+    },
+    telegramText: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#0369A1',
+    },
+    facebookStrip: {
+        width: 4,
+        backgroundColor: '#1877F2', // Facebook Blue
+    },
+    facebookBackground: {
+        marginTop: 6,
+        backgroundColor: '#F0F2F5', // Facebook Light Grey
+        borderRadius: 8,
+        flexDirection: 'row',
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: '#CCD0D5',
+    },
+    twitterStrip: {
+        width: 4,
+        backgroundColor: '#333333', // X (Twitter) Dark Grey
+    },
+    twitterText: {
+        color: '#888484ff',
+    },
 });
