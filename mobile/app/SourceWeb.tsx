@@ -1,12 +1,11 @@
-//source preview click page. 
 import React, { useLayoutEffect, useRef, useState } from 'react';
-import {
-  StyleSheet,
-  View,
-  Text,
-  ActivityIndicator,
-  TouchableOpacity,
+import { 
+  StyleSheet, 
+  View, 
+  ActivityIndicator, 
+  TouchableOpacity, 
   Linking,
+  
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { useRoute, useNavigation } from '@react-navigation/native';
@@ -26,7 +25,7 @@ export default function SourceWebScreen() {
       title: title || 'Source Content',
       headerTitleAlign: 'center',
       headerTitleStyle: { fontSize: 16 },
-      headerBackTitleVisible: false,
+      headerBackTitleVisible: false, 
     });
   }, [navigation, title]);
 
@@ -70,34 +69,6 @@ export default function SourceWebScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Custom Header with Back Button */}
-      <SafeAreaView style={styles.header} edges={['top']}>
-        <View style={styles.headerContent}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.backButton}
-          >
-            <Ionicons name="arrow-back" size={24} color="#1F2937" />
-          </TouchableOpacity>
-          <View style={styles.headerTitleContainer}>
-            <Ionicons name="globe-outline" size={16} color="#6B7280" />
-            <View style={styles.headerTextContainer}>
-              <View style={styles.titleRow}>
-                <Text style={styles.headerTitle} numberOfLines={1}>
-                  {title || 'Source Content'}
-                </Text>
-              </View>
-              <Text style={styles.headerUrl} numberOfLines={1}>
-                {url.replace(/^https?:\/\//, '').split('/')[0]}
-              </Text>
-            </View>
-          </View>
-          <TouchableOpacity onPress={openExternal} style={styles.externalButton}>
-            <Ionicons name="open-outline" size={22} color="#3B82F6" />
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-
       {/* Progress Bar */}
       {progress < 1 && (
         <View style={styles.progressBarContainer}>
@@ -125,34 +96,34 @@ export default function SourceWebScreen() {
       {/* Bottom Navigation Bar */}
       <SafeAreaView style={styles.bottomBar} edges={['bottom']}>
         <View style={styles.toolbar}>
-          <TouchableOpacity
-            onPress={() => webViewRef.current?.goBack()}
+          <TouchableOpacity 
+            onPress={() => webViewRef.current?.goBack()} 
             disabled={!navState.canGoBack}
             style={styles.toolbarButton}
           >
             <Ionicons name="chevron-back" size={24} color={navState.canGoBack ? "#3B82F6" : "#D1D5DB"} />
           </TouchableOpacity>
 
-          <TouchableOpacity
-            onPress={() => webViewRef.current?.goForward()}
+          <TouchableOpacity 
+            onPress={() => webViewRef.current?.goForward()} 
             disabled={!navState.canGoForward}
             style={styles.toolbarButton}
           >
             <Ionicons name="chevron-forward" size={24} color={navState.canGoForward ? "#3B82F6" : "#D1D5DB"} />
           </TouchableOpacity>
 
-          <TouchableOpacity
-            onPress={() => webViewRef.current?.reload()}
+          <TouchableOpacity 
+            onPress={() => webViewRef.current?.reload()} 
             style={styles.toolbarButton}
           >
             <Ionicons name="refresh" size={24} color="#3B82F6" />
           </TouchableOpacity>
 
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
+          <TouchableOpacity 
+            onPress={openExternal} 
             style={styles.toolbarButton}
           >
-            <Ionicons name="close-circle-outline" size={24} color="#EF4444" />
+            <Ionicons name="globe-outline" size={24} color="#3B82F6" />
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -164,47 +135,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
-  },
-  header: {
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  backButton: {
-    padding: 8,
-    marginRight: 8,
-  },
-  headerTitleContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  headerTextContainer: {
-    flex: 1,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  headerTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1F2937',
-  },
-  headerUrl: {
-    fontSize: 11,
-    color: '#9CA3AF',
-  },
-  externalButton: {
-    padding: 8,
   },
   progressBarContainer: {
     height: 3,

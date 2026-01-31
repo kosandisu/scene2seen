@@ -171,7 +171,7 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
           showsVerticalScrollIndicator={false}
           nestedScrollEnabled
         >
-          
+
           <View style={styles.header}>
             <View style={styles.headerLeft}>
               <Text
@@ -267,7 +267,7 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
                     {displayLocation}
                   </Text>
 
-                  
+
                   {(!isFetchingPlace && displayLocation !== incident.location_name) && (
                     <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }} numberOfLines={1}>
                       {incident.location_name}
@@ -315,7 +315,7 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
                       <View style={styles.linkCardStrip} />
                     </Pressable>
                   ) : incident.source_platform === 'app' ? (
-                    
+
                     <View style={styles.appSourceCard}>
                       <View style={styles.appSourceStrip} />
                       <View style={styles.appSourceContent}>
@@ -361,6 +361,7 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
             <IncidentImage imageUrl={incident.og_image} />
           </View>
 
+          {/**need to add conditional stuff to voice memos stuff */}
           {/* currently gets located to google maps in the browser */}
           <DirectionsButton
             destinationLat={incident.reporter_lat}

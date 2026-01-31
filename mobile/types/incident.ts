@@ -23,7 +23,7 @@ export interface IncidentReport {
   source_url: string | null;
   reporter_lat: number;
   reporter_lng: number;
-  source_platform: string; 
+  source_platform: string;
   created_at: Date | { seconds: number; nanoseconds: number };
   //image_url?: string | null;
   reporter_name?: string | null;
@@ -34,6 +34,10 @@ export interface IncidentReport {
   og_description?: string | null;
   og_image?: string | null;
   og_site?: string | null;
+
+  // New Evidence Fields
+  evidence_image_url?: string | null;
+  evidence_voice_url?: string | null;
 }
 
 export interface UserLocation {

@@ -1,14 +1,14 @@
 import { StyleSheet, View, Text, ActivityIndicator, TouchableOpacity, StatusBar } from "react-native";
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { collection, onSnapshot } from "firebase/firestore";
-import { db } from "../../firebase"; 
+import { db } from "../../firebase";
 import MapView, { PROVIDER_DEFAULT } from "react-native-maps";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { IncidentMarker, IncidentDashboard } from "../../components/incident";
-import { IncidentCallout } from "../../components/incident/IncidentCallout"; 
+import { IncidentCallout } from "../../components/incident/IncidentCallout";
 import type { IncidentReport } from "../../types/incident";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter, useLocalSearchParams } from "expo-router"; 
+import { useRouter, useLocalSearchParams } from "expo-router";
 
 const DEFAULT_REGION = {
   latitude: 37.5665,
@@ -19,9 +19,9 @@ const DEFAULT_REGION = {
 
 export default function MapScreen() {
   const router = useRouter();
-  
+
   const { source, incidentId } = useLocalSearchParams();
-    
+
   const isPublicView = source === 'public';
   const targetIncidentId = typeof incidentId === 'string' ? incidentId : undefined;
 
@@ -50,7 +50,16 @@ export default function MapScreen() {
 
   const validReports = useMemo(() => reports.filter(r => r.reporter_lat && r.reporter_lng), [reports]);
 
-  // Auto-focus incident from notification (only once)
+  const handleIncidentPress = useCallback((incident: IncidentReport) => {
+    mapRef.current?.animateToRegion({
+      latitude: incident.reporter_lat,
+      longitude: incident.reporter_lng,
+      latitudeDelta: 0.01,
+      longitudeDelta: 0.01,
+    }, 500);
+    setSelectedIncident(incident);
+  }, []);
+
   useEffect(() => {
     if (targetIncidentId && validReports.length > 0 && !hasHandledInitialIncident.current) {
       const incident = validReports.find(r => r.id === targetIncidentId);
@@ -61,15 +70,7 @@ export default function MapScreen() {
     }
   }, [targetIncidentId, validReports, handleIncidentPress]);
 
-  const handleIncidentPress = useCallback((incident: IncidentReport) => {
-    mapRef.current?.animateToRegion({
-      latitude: incident.reporter_lat,
-      longitude: incident.reporter_lng,
-      latitudeDelta: 0.01,
-      longitudeDelta: 0.01,
-    }, 500);
-    setSelectedIncident(incident);
-  }, []);
+
 
   if (isLoading) return <ActivityIndicator size="large" style={styles.center} />;
 
@@ -86,19 +87,19 @@ export default function MapScreen() {
       >
         {validReports.map((report) => (
           <IncidentMarker
-             key={report.id}
-             incident={report}
-             onPress={() => handleIncidentPress(report)}
+            key={report.id}
+            incident={report}
+            onPress={() => handleIncidentPress(report)}
           />
         ))}
       </MapView>
 
-      
+
       {isPublicView && (
         <View style={styles.header} pointerEvents="box-none">
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={20} color="#111827" />
-            
+
           </TouchableOpacity>
         </View>
       )}

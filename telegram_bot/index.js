@@ -2,6 +2,7 @@ import "dotenv/config";
 import TelegramBot from "node-telegram-bot-api";
 import { initializeApp } from "firebase/app";
 import { getFirestore, collection, addDoc } from "firebase/firestore";
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import fetch from "node-fetch";
 import * as cheerio from "cheerio";
 
@@ -64,6 +65,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const reportsRef = collection(db, "reports");
+const storage = getStorage(app);
 
 // userId -> { step, data }
 const reportState = new Map();
@@ -102,14 +104,29 @@ async function fetchOgMetadata(url) {
   }
 }
 
+async function uploadTelegramFileToFirebase(fileId, path) {
+  try {
+    const fileLink = await bot.getFileLink(fileId);
+    const res = await fetch(fileLink);
+    const buffer = await res.arrayBuffer();
+    const fileRef = storageRef(storage, path);
+
+    await uploadBytes(fileRef, new Uint8Array(buffer)); // Firebase v9 expects Uint8Array or Blob
+    const downloadUrl = await getDownloadURL(fileRef);
+    return downloadUrl;
+  } catch (error) {
+    console.error("File upload error:", error);
+    return null;
+  }
+}
+
 // /start -> type -> des -> sns -> media(-) -> loc
 
 /*
 incident type 
 severity level (-)
 Brief description of the incident 
-Sns link to the incident - fb , x
-Upload media (-)
+Sns link to the incident - fb , x || img upload || voice memo shi
 location sharing  
 */
 
@@ -177,8 +194,8 @@ bot.on("callback_query", async (callbackQuery) => {
 
     state.data.severity = selectedSev;
 
-    // Move to next step snsurl
-    state.step = "URL";
+    // Move to next step evidence
+    state.step = "EVIDENCE";
     reportState.set(userId, state);
 
     //should test it with like double links or sth.
@@ -189,7 +206,7 @@ bot.on("callback_query", async (callbackQuery) => {
 
     bot.sendMessage(
       msg.chat.id,
-      "🔗 *SNS LINK REQUIRED*\n\nPlease paste the link to the social media post (Facebook, X, etc):",
+      "📂 *EVIDENCE REQUIRED*\n\nPlease provide at least one of the following:\n- 🔗 Paste a **Link** (SNS/News)\n- 📸 Upload a **Photo**\n- 🎤 Send a **Voice Memo**\n\n_You can send multiple items._\n\n✅ Type /done when finished.",
       { parse_mode: "Markdown" }
     );
   }
@@ -197,35 +214,81 @@ bot.on("callback_query", async (callbackQuery) => {
 
 
 bot.on("message", async (msg) => {
-  if (msg.chat.type !== "private" || msg.text?.startsWith("/")) return;
+  if (msg.chat.type !== "private" || (msg.text?.startsWith("/") && msg.text !== "/done")) return;
 
   const userId = msg.from?.id;
   const state = reportState.get(userId);
   if (!state) return;
 
-  if (state.step === "URL") {
-    const url = extractUrl(msg.text);
+  if (state.step === "EVIDENCE") {
+    // Handle /done command
+    if (msg.text === "/done") {
+      const hasLink = !!state.data.source_url;
+      const hasImage = !!state.data.evidence_image_url;
+      const hasVoice = !!state.data.evidence_voice_url;
 
-    if (!url) {
-      bot.sendMessage(msg.chat.id, "❌ **Invalid Link**\n\nWe need a valid SNS source link to verify this incident.\n👇 *Paste the link below:*", { parse_mode: "Markdown" });
+      if (!hasLink && !hasImage && !hasVoice) {
+        bot.sendMessage(msg.chat.id, "❌ **No Evidence Provided**\n\nPlease send at least one (Link, Photo, or Voice info) before typing /done.", { parse_mode: "Markdown" });
+        return;
+      }
+
+      state.step = "DETAILS";
+      reportState.set(userId, state);
+      bot.sendMessage(msg.chat.id, "✅ Evidence Saved!\n\n📝 **DESCRIPTION REQUIRED**\n\nPlease write a brief description (e.g., 'Large fire visible from highway').", { parse_mode: "Markdown" });
       return;
     }
 
-    //URL Accepted
-    bot.sendMessage(msg.chat.id, "🔎 Verifying link...", { disable_notification: true });
-    const ogMeta = await fetchOgMetadata(url);
+    // Handle Link (Text)
+    const url = extractUrl(msg.text);
+    if (url) {
+      bot.sendMessage(msg.chat.id, "🔎 Verifying link...", { disable_notification: true });
+      const ogMeta = await fetchOgMetadata(url);
+      state.data.source_url = url;
+      state.data.og_meta = ogMeta;
+      reportState.set(userId, state);
+      bot.sendMessage(msg.chat.id, `🔗 Link added! \n\nAdd more evidence or type /done.`);
+      return;
+    }
 
-    state.data.source_url = url;
-    state.data.og_meta = ogMeta;
+    // Handle Photo
+    if (msg.photo && msg.photo.length > 0) {
+      const fileId = msg.photo[msg.photo.length - 1].file_id; // Best quality
+      bot.sendMessage(msg.chat.id, "☁️ Uploading photo...", { disable_notification: true });
+      const downloadUrl = await uploadTelegramFileToFirebase(fileId, `evidence/images/${userId}_${Date.now()}.jpg`);
 
-    state.step = "DETAILS";
-    reportState.set(userId, state);
+      if (downloadUrl) {
+        state.data.evidence_image_url = downloadUrl; // Currently stores only last one, can allow array if needed
+        reportState.set(userId, state);
+        bot.sendMessage(msg.chat.id, "📸 Photo saved! \n\nAdd more evidence or type /done.");
+      } else {
+        bot.sendMessage(msg.chat.id, "❌ Photo upload failed.");
+      }
+      return;
+    }
 
-    bot.sendMessage(
-      msg.chat.id,
-      "Link Accepted!\n\n📝 **DESCRIPTION REQUIRED**\n\nPlease write a brief description (e.g., 'Large fire visible from highway').\n*If you upload media, put text in the caption!*",
-      { parse_mode: "Markdown" }
-    );
+    // Handle Voice
+    if (msg.voice) {
+      const fileId = msg.voice.file_id;
+      bot.sendMessage(msg.chat.id, "☁️ Uploading voice memo...", { disable_notification: true });
+      const downloadUrl = await uploadTelegramFileToFirebase(fileId, `evidence/voice/${userId}_${Date.now()}.oga`);
+
+      if (downloadUrl) {
+        state.data.evidence_voice_url = downloadUrl;
+        reportState.set(userId, state);
+        bot.sendMessage(msg.chat.id, "🎤 Voice memo saved! \n\nAdd more evidence or type /done.");
+      } else {
+        bot.sendMessage(msg.chat.id, "❌ Voice upload failed.");
+      }
+      return;
+    }
+
+    if (!msg.text) {
+      bot.sendMessage(msg.chat.id, "❌ Unsupported file type. Please send a Link, Photo, or Voice Memo.");
+    }
+    // If text but not a link and not /done, probably a confused user or description early
+    if (msg.text && !url && msg.text !== "/done") {
+      bot.sendMessage(msg.chat.id, "⚠️ **Text received but not a link.**\nIf this is a description, please finish specificing evidence first by typing /done.\nIf it's a link, check the format.");
+    }
     return;
   }
 
@@ -252,8 +315,7 @@ bot.on("message", async (msg) => {
     return;
   }
 
-  //need to fix the location. 
-  //saves only half of the add
+
   if (msg.location && state.step === "LOCATION") {
 
     bot.sendMessage(msg.chat.id, "⏳ Saving report...");
@@ -288,7 +350,10 @@ bot.on("message", async (msg) => {
         type: state.data.type,
         priority: state.data.severity,
         text: state.data.text,
-        source_url: state.data.source_url,
+
+        source_url: state.data.source_url || null,
+        evidence_image_url: state.data.evidence_image_url || null,
+        evidence_voice_url: state.data.evidence_voice_url || null,
 
         // Open Graph meta data
         //only works for fb for now
