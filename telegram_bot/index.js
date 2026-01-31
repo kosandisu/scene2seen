@@ -117,7 +117,7 @@ async function uploadTelegramFileToFirebase(fileId, filePathInBucket) {
     const res = await fetch(fileLink);
     const buffer = await res.arrayBuffer();
 
-    // Check if transcoding is needed (TG voice is .oga or .ogg)
+    // ogg oga don work with ios -> chg to mp3
     if (filePathInBucket.endsWith('.oga') || filePathInBucket.endsWith('.ogg')) {
       console.log(`Transcoding voice memo: ${filePathInBucket} -> mp3`);
       const tempId = Math.random().toString(36).substring(7);
@@ -157,9 +157,8 @@ async function uploadTelegramFileToFirebase(fileId, filePathInBucket) {
       return await getDownloadURL(fileRef);
     }
 
-    // Normal upload for images etc
     const fileRef = storageRef(storage, filePathInBucket);
-    await uploadBytes(fileRef, new Uint8Array(buffer)); // Firebase v9 expects Uint8Array or Blob
+    await uploadBytes(fileRef, new Uint8Array(buffer));
     const downloadUrl = await getDownloadURL(fileRef);
     return downloadUrl;
   } catch (error) {

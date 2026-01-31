@@ -280,7 +280,7 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
             </View>
 
 
-            {/* link if from sns app or if report from app then app */}
+            {/* link if from fb/x || in app || from telegram */}
             <View style={styles.gridRow}>
               <View style={[styles.detailItem, styles.fullWidth]}>
                 <View style={styles.detailIcon}>
@@ -338,7 +338,7 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
                       <View style={styles.appSourceStrip} />
                     </View>
                   ) : (
-                    // Telegram report with NO link (Just voice/image)
+                    // Telegram report with no link (Just voice/image)
                     <View style={styles.telegramBackground}>
                       <View style={styles.telegramStrip} />
                       <View style={styles.appSourceContent}>
@@ -374,14 +374,14 @@ export function IncidentCallout({ incident, onClose }: IncidentCalloutProps) {
               {/* Priority: Evidence Image > OG Image */}
               <IncidentImage imageUrl={incident.evidence_image_url || incident.og_image} />
 
-              {/* Voice Memo Player */}
+              {/* Voice Memo stuff */}
               {incident.evidence_voice_url && (
                 <IncidentVoice url={incident.evidence_voice_url} />
               )}
             </View>
           )}
 
-          {/**need to add conditional stuff to voice memos stuff */}
+
           {/* currently gets located to google maps in the browser */}
           <DirectionsButton
             destinationLat={incident.reporter_lat}
